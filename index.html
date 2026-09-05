@@ -1,31 +1,126 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Number System Converter & Calculator</title>
-    <!-- Links to your external CSS file -->
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="container">
-        <h1>Number System Converter & Calculator</h1>
-        <p class="subtitle">Convert between Binary, Octal, Decimal, and Hexadecimal</p>
+        <header class="header">
+            <h1>Number System Converter & Calculator</h1>
+            <p class="subtitle">Multi-Base Input Converter with Unified Arithmetic Engine (Base 2, 8, 10, 16)</p>
+        </header>
 
-        <div class="control-panel">
-            <label for="num-inputs"><strong>Number of Inputs (Min 3):</strong></label>
-            <input type="number" id="num-inputs" min="3" value="3">
-            <button id="generate-btn">Generate Fields</button>
+        <!-- top controls -->
+        <div class="controls-wrapper">
+            <div class="control-panel">
+                <label for="num-inputs"><strong>Number of Inputs (Min 3):</strong></label>
+                <input type="number" id="num-inputs" min="3" value="3" aria-label="Number of inputs">
+                <button type="button" id="generate-btn">Update Fields</button>
+            </div>
+
+            <!-- quick presets for test cases -->
+            <div class="presets-bar">
+                <span class="bar-label">Quick Test Presets:</span>
+                <div class="preset-buttons">
+                    <button type="button" class="preset-btn" data-preset="1">BIN + OCT + DEC</button>
+                    <button type="button" class="preset-btn" data-preset="2">BIN + DEC + HEX</button>
+                    <button type="button" class="preset-btn" data-preset="3">OCT + DEC + HEX</button>
+                    <button type="button" class="preset-btn" data-preset="4">BIN + OCT + HEX</button>
+                    <button type="button" class="preset-btn" data-preset="5">BIN + OCT + DEC + HEX</button>
+                </div>
+            </div>
         </div>
 
+        <!-- arithmetic operation selector -->
+        <div class="operation-panel">
+            <span class="section-label">Select Arithmetic Operation</span>
+            <div class="operation-buttons" id="operation-buttons" role="radiogroup" aria-label="Arithmetic Operation">
+                <button type="button" class="op-btn active" data-op="+" role="radio" aria-checked="true">
+                    <span class="op-symbol">+</span>
+                    <span class="op-name">Addition</span>
+                </button>
+                <button type="button" class="op-btn" data-op="-" role="radio" aria-checked="false">
+                    <span class="op-symbol">−</span>
+                    <span class="op-name">Subtraction</span>
+                </button>
+                <button type="button" class="op-btn" data-op="*" role="radio" aria-checked="false">
+                    <span class="op-symbol">×</span>
+                    <span class="op-name">Multiplication</span>
+                </button>
+                <button type="button" class="op-btn" data-op="/" role="radio" aria-checked="false">
+                    <span class="op-symbol">÷</span>
+                    <span class="op-name">Division</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- container for dynamically generated input rows -->
+        <div class="section-label">Input Numbers & Individual Conversions</div>
         <div id="inputs-container"></div>
 
+        <!-- calculate and convert all -->
         <div class="action-area">
-            <button id="process-btn">Validate & Convert All</button>
+            <button type="button" id="process-btn" class="primary-btn">Calculate & Convert All</button>
+        </div>
+
+        <!-- results -->
+        <div class="results-section" id="results-section" style="display: none;">
+            <!-- expression card -->
+            <div class="expression-card">
+                <div class="card-badge">Arithmetic Expression</div>
+                <div class="expression-display" id="expression-display">-</div>
+                <div class="decimal-breakdown" id="decimal-breakdown">
+                    <span class="breakdown-label">Decimal Evaluation:</span>
+                    <span class="breakdown-formula" id="decimal-formula">-</span>
+                </div>
+            </div>
+
+            <!-- final result -->
+            <div class="final-results-card">
+                <div class="card-badge">Final Computed Result</div>
+                <div class="final-results-grid">
+                    <div class="result-tile" id="tile-bin">
+                        <div class="tile-header">
+                            <span class="tile-base">Binary</span>
+                            <span class="tile-tag">Base 2</span>
+                        </div>
+                        <div class="tile-value" id="final-bin">-</div>
+                    </div>
+
+                    <div class="result-tile" id="tile-oct">
+                        <div class="tile-header">
+                            <span class="tile-base">Octal</span>
+                            <span class="tile-tag">Base 8</span>
+                        </div>
+                        <div class="tile-value" id="final-oct">-</div>
+                    </div>
+
+                    <div class="result-tile" id="tile-dec">
+                        <div class="tile-header">
+                            <span class="tile-base">Decimal</span>
+                            <span class="tile-tag">Base 10</span>
+                        </div>
+                        <div class="tile-value" id="final-dec">-</div>
+                    </div>
+
+                    <div class="result-tile" id="tile-hex">
+                        <div class="tile-header">
+                            <span class="tile-base">Hexadecimal</span>
+                            <span class="tile-tag">Base 16</span>
+                        </div>
+                        <div class="tile-value" id="final-hex">-</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Links to your external JS file. Placed at the bottom so HTML loads first -->
     <script src="script.js"></script>
 </body>
+
 </html>

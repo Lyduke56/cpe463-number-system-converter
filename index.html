@@ -36,32 +36,72 @@
             </div>
         </div>
 
-        <!-- arithmetic operation selector -->
-        <div class="operation-panel">
-            <span class="section-label">Select Arithmetic Operation</span>
-            <div class="operation-buttons" id="operation-buttons" role="radiogroup" aria-label="Arithmetic Operation">
-                <button type="button" class="op-btn active" data-op="+" role="radio" aria-checked="true">
-                    <span class="op-symbol">+</span>
-                    <span class="op-name">Addition</span>
-                </button>
-                <button type="button" class="op-btn" data-op="-" role="radio" aria-checked="false">
-                    <span class="op-symbol">−</span>
-                    <span class="op-name">Subtraction</span>
-                </button>
-                <button type="button" class="op-btn" data-op="*" role="radio" aria-checked="false">
-                    <span class="op-symbol">×</span>
-                    <span class="op-name">Multiplication</span>
-                </button>
-                <button type="button" class="op-btn" data-op="/" role="radio" aria-checked="false">
-                    <span class="op-symbol">÷</span>
-                    <span class="op-name">Division</span>
-                </button>
+        <!-- expression builder panel -->
+        <div class="expression-panel">
+            <div class="panel-header">
+                <span class="section-label">Arithmetic Expression & Equation</span>
+                <span class="panel-hint">Supports mixed operators (+, −, ×, ÷), parentheses, precedence (BODMAS/PEMDAS) & variables</span>
+            </div>
+
+            <!-- main expression text input -->
+            <div class="expr-input-group">
+                <label for="expr-input" class="sr-only">Arithmetic Expression</label>
+                <div class="expr-input-wrapper">
+                    <span class="expr-icon">𝑓(𝑥) =</span>
+                    <input type="text" id="expr-input" class="expr-input" value="(A + B - C) * D" placeholder="e.g. (A + B - C) * D" spellcheck="false" autocomplete="off">
+                    <button type="button" id="clear-expr-btn" class="icon-btn" title="Clear Expression" aria-label="Clear expression">✕</button>
+                </div>
+            </div>
+
+            <!-- virtual keypad with variables and operators -->
+            <div class="keypad-container">
+                <div class="keypad-group">
+                    <span class="keypad-label">Variables:</span>
+                    <div class="keys-row" id="var-keys">
+                        <!-- dynamically populated with buttons for active variables -->
+                    </div>
+                </div>
+
+                <div class="keypad-group">
+                    <span class="keypad-label">Operators & Grouping:</span>
+                    <div class="keys-row">
+                        <button type="button" class="key-btn op-key" data-insert="(">(</button>
+                        <button type="button" class="key-btn op-key" data-insert=")">)</button>
+                        <button type="button" class="key-btn op-key" data-insert=" + ">+</button>
+                        <button type="button" class="key-btn op-key" data-insert=" − ">−</button>
+                        <button type="button" class="key-btn op-key" data-insert=" × ">×</button>
+                        <button type="button" class="key-btn op-key" data-insert=" ÷ ">÷</button>
+                        <button type="button" class="key-btn action-key" id="backspace-btn" title="Backspace">⌫</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- expression presets -->
+            <div class="expr-presets-bar">
+                <span class="expr-presets-label">Expression Presets:</span>
+                <div class="expr-preset-chips" id="expr-presets">
+                    <button type="button" class="expr-chip" data-expr="(A + B - C) * D">(A + B − C) × D</button>
+                    <button type="button" class="expr-chip" data-expr="(A + B) * C">(A + B) × C</button>
+                    <button type="button" class="expr-chip" data-expr="(A - B) / C">(A − B) ÷ C</button>
+                    <button type="button" class="expr-chip" data-expr="A * B + C * D">A × B + C × D</button>
+                    <button type="button" class="expr-chip" data-expr="(A + B) / (C - D)">(A + B) ÷ (C − D)</button>
+                </div>
             </div>
         </div>
 
         <!-- container for dynamically generated input rows -->
         <div class="section-label">Input Numbers & Individual Conversions</div>
         <div id="inputs-container"></div>
+
+        <!-- error banner -->
+        <div class="error-banner" id="global-error-banner" style="display: none;" role="alert">
+            <div class="error-banner-icon">⚠️</div>
+            <div class="error-banner-content">
+                <h4 class="error-banner-title" id="error-banner-title">Arithmetic Error</h4>
+                <p class="error-banner-desc" id="error-banner-desc">An error occurred during evaluation.</p>
+            </div>
+            <button type="button" class="error-banner-close" id="error-banner-close" aria-label="Dismiss error">✕</button>
+        </div>
 
         <!-- calculate and convert all -->
         <div class="action-area">
@@ -71,12 +111,36 @@
         <!-- results -->
         <div class="results-section" id="results-section" style="display: none;">
             <!-- expression card -->
-            <div class="expression-card">
-                <div class="card-badge">Arithmetic Expression</div>
+            <div class="expression-card" id="expression-card">
+                <div class="card-header-bar">
+                    <div class="card-badge">Arithmetic Expression Evaluation</div>
+                    <span class="status-pill success" id="eval-status-pill">Evaluation Complete</span>
+                </div>
+
                 <div class="expression-display" id="expression-display">-</div>
-                <div class="decimal-breakdown" id="decimal-breakdown">
-                    <span class="breakdown-label">Decimal Evaluation:</span>
-                    <span class="breakdown-formula" id="decimal-formula">-</span>
+
+                <div class="expression-breakdowns">
+                    <div class="breakdown-row">
+                        <span class="breakdown-label">Multi-Base Formula:</span>
+                        <span class="breakdown-formula multi-base-val" id="multi-base-formula">-</span>
+                    </div>
+                    <div class="breakdown-row">
+                        <span class="breakdown-label">Decimal Substitution:</span>
+                        <span class="breakdown-formula" id="decimal-formula">-</span>
+                    </div>
+                </div>
+
+                <!-- step by step evaluation -->
+                <div class="steps-section" id="steps-section">
+                    <div class="steps-header" id="steps-toggle">
+                        <span class="steps-title">
+                            <span class="steps-icon" id="steps-chevron">▼</span> Step-by-Step Evaluation Breakdown (Precedence & Associativity)
+                        </span>
+                        <span class="steps-count" id="steps-count">0 Steps</span>
+                    </div>
+                    <div class="steps-content" id="steps-content">
+                        <ol class="steps-list" id="steps-list"></ol>
+                    </div>
                 </div>
             </div>
 

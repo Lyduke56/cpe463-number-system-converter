@@ -1,0 +1,44 @@
+flowchart TD
+    Start(["Page Loads"]) --> Init["Render 3 default input rows<br/>Generate virtual keypad variable buttons<br/>Load default Preset 5: (A + B − C) × D"]
+    Init --> Idle["User Interacts:<br/>edit values, pick base (2, 8, 10, 16),<br/>type expression, use keypad, or select preset"]
+
+    Idle -- "Update Fields" --> Regen["Re-render input rows<br/>preserve data, enforce min 3<br/>update virtual keypad variables"]
+    Regen --> Idle
+
+    Idle -- "Keypad / Preset Chips" --> EditExpr["Insert character at cursor or<br/>load preset expression"]
+    EditExpr --> Idle
+
+    Idle -- "Load Preset Button" --> Preset["Populate input rows with preset bases and values<br/>Set expression input to preset expression"]
+    Preset --> Process
+
+    Idle -- "Calculate & Convert All" --> Process(["processCalculation"])
+
+    Process --> ValidateInputs{"All input fields valid<br/>for selected bases?"}
+    ValidateInputs -- "No" --> ShowInputErr["Highlight invalid/empty input rows<br/>Show 'Invalid Input Digits' error banner<br/>Hide results section"]
+    ShowInputErr --> Idle
+
+    ValidateInputs -- "Yes" --> BuildVarMap["Parse inputs to decimal<br/>Update individual 4-base conversion grids<br/>Build variable dictionary: A, B, C, D..."]
+
+    BuildVarMap --> Tokenize["Tokenize Expression String<br/>Normalize: × to *, ÷ to /, − to -<br/>Handle numbers, variables, parentheses, unary -"]
+
+    Tokenize --> CheckSyntax{"Expression syntax valid<br/>and parentheses balanced?"}
+    CheckSyntax -- "No" --> ShowSyntaxErr["Display Syntax Error banner<br/>Highlight expression input<br/>Hide results section"]
+    ShowSyntaxErr --> Idle
+
+    CheckSyntax -- "Yes" --> CheckVars{"All referenced variables<br/>defined in active inputs?"}
+    CheckVars -- "No" --> ShowVarErr["Display 'Undefined Variable' error banner<br/>Prompt user to increase input count"]
+    ShowVarErr --> Idle
+
+    CheckVars -- "Yes" --> ShuntingYard["Dijkstra's Shunting-yard Algorithm<br/>Convert infix tokens to RPN / Postfix<br/>Enforce PEMDAS precedence & associativity"]
+
+    ShuntingYard --> BuildAST["Construct Abstract Syntax Tree (AST)"]
+    BuildAST --> EvalTree["Evaluate AST Bottom-Up<br/>Record step-by-step reduction history"]
+
+    EvalTree --> DivZeroCheck{"Division by zero<br/>divisor == 0?"}
+    DivZeroCheck -- "Yes" --> MathErr["Catch MathError<br/>Show 'Division by zero is undefined' banner<br/>Mark result tiles as 'Undefined (Div by 0)'<br/>Show halted step in breakdown"]
+    
+    DivZeroCheck -- "No" --> FormatResults["Compute final decimal result<br/>Format into Binary, Octal, Decimal, Hexadecimal<br/>Populate complete step-by-step breakdown list"]
+
+    MathErr --> ShowResults["Render Results Section<br/>Symbolic formula, multi-base subscripts, tiles<br/>Scroll results into view"]
+    FormatResults --> ShowResults
+    ShowResults --> Idle

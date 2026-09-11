@@ -1,0 +1,463 @@
+==========================================================================
+ NUMBER SYSTEM CONVERTER & ALGEBRAIC CALCULATOR - PSEUDOCODE
+==========================================================================
+
+CONSTANTS:
+    BASE_SUBSCRIPTS = { 2:"₂", 8:"₈", 10:"₁₀", 16:"₁₆" }
+    OP_DISPLAY      = { "+":"+", "-":"−", "*":"×", "/":"÷", "NEG":"−" }
+    PRECEDENCE      = { "+":1, "-":1, "*":2, "/":2, "NEG":3 }
+    ASSOCIATIVITY   = { "+":"L", "-":"L", "*":"L", "/":"L", "NEG":"R" }
+
+
+--------------------------------------------------------------------------
+1. VARIABLE & INDEX MAPPING HELPERS
+--------------------------------------------------------------------------
+FUNCTION getVarLetter(index):
+    // Maps numeric index to alphabet letters: 1 -> 'A', 2 -> 'B', ..., 26 -> 'Z'
+    CONVERT index into base-26 letter string
+    RETURN letter (uppercase)
+
+FUNCTION getIndexFromVar(name):
+    // Maps variable letter back to 1-based index: 'A' -> 1, 'B' -> 2
+    CONVERT letter string into integer
+    RETURN index
+
+
+--------------------------------------------------------------------------
+2. CREATE A SINGLE INPUT ROW (index)
+--------------------------------------------------------------------------
+FUNCTION createInputRow(index):
+    varName = getVarLetter(index)
+
+    Build a row containing:
+        - Variable badge: "Variable {varName}"
+        - Title: "Input Number {index}"
+        - Base indicator label (default "Base 10")
+        - Dropdown to select base (2, 8, 10, 16)
+        - Text field to enter value
+        - Error message placeholder
+        - Mini conversion matrix (BIN/OCT/DEC/HEX)
+
+    ON base dropdown change:
+        UPDATE indicator label text
+        CALL validateRow(index)
+
+    ON value input change:
+        CALL validateRow(index)
+
+    RETURN row element
+
+
+--------------------------------------------------------------------------
+3. RENDER INPUT ROWS & VIRTUAL KEYPAD (count)
+--------------------------------------------------------------------------
+FUNCTION updateVarKeypad(count):
+    CLEAR variable keys container
+    FOR i = 1 TO count:
+        v = getVarLetter(i)
+        CREATE button with label "{v}"
+        ON click: CALL insertAtCursor(exprInput, v)
+        APPEND button to keypad container
+
+FUNCTION renderInputs(count):
+    IF count is not provided:
+        count = value of "number of inputs" field
+
+    IF count < 3 OR invalid:
+        count = 3   // enforce minimum 3 inputs
+
+    // preserve existing input values before re-rendering
+    existingData = []
+    FOR each currently rendered row:
+        SAVE its base + value into existingData
+
+    CLEAR inputs container
+
+    FOR i = 1 TO count:
+        rowElement = createInputRow(i)
+        APPEND rowElement to container
+
+        IF existingData has entry for i:
+            RESTORE base + value into the new row
+            UPDATE indicator label
+            CALL validateRow(i)
+
+    CALL updateVarKeypad(count)
+
+    IF expression input is empty:
+        SET default expression (e.g. "(A + B) * C" or "(A + B - C) * D")
+
+    HIDE results section
+    HIDE error banner
+
+
+--------------------------------------------------------------------------
+4. VALIDATION
+--------------------------------------------------------------------------
+FUNCTION isValidNumber(value, base):
+    IF value is empty: RETURN false
+    STRIP leading "-" if present
+    IF remaining string is empty: RETURN false
+
+    MATCH remaining string against allowed digits for base:
+        base 2  -> only 0, 1
+        base 8  -> only 0 through 7
+        base 10 -> only 0 through 9
+        base 16 -> only 0 through 9, A-F (case-insensitive)
+
+    RETURN true if pattern matches, else false
+
+FUNCTION getAllowedChars(base):
+    RETURN human-readable description of allowed digits for that base
+
+FUNCTION validateRow(index):
+    base  = selected base of row[index]
+    value = trimmed input value of row[index]
+
+    IF value is empty:
+        CLEAR error state
+        CLEAR row[index] mini conversion matrix
+        RETURN false
+
+    IF NOT isValidNumber(value, base):
+        SHOW error state with message "Invalid character for Base {base}..."
+        CLEAR row[index] mini conversion matrix
+        RETURN false
+
+    CLEAR error state
+    decVal = parseToDecimal(value, base)
+    CALL displayRowConversions(index, decVal)
+    RETURN true
+
+
+--------------------------------------------------------------------------
+5. BASE CONVERSION HELPERS
+--------------------------------------------------------------------------
+FUNCTION parseToDecimal(valueStr, base):
+    isNegative = valueStr starts with "-"
+    strip sign if present
+    decimalValue = PARSE_INT(cleanStr, base)
+    RETURN isNegative ? -decimalValue : decimalValue
+
+FUNCTION formatBase(number, base, precision = 6):
+    IF number is NaN OR infinite: RETURN "NaN" / "Infinity"
+
+    isNegative = number < 0
+    absNumber  = ABS(number)
+    intPart    = FLOOR(absNumber)
+    fracPart   = absNumber - intPart
+
+    intString = intPart CONVERTED TO base (uppercase)
+
+    IF fracPart == 0 OR precision <= 0:
+        RETURN (isNegative ? "-" : "") + intString
+
+    fracString = ""
+    REPEAT up to 'precision' times WHILE fracPart > 0:
+        fracPart *= base
+        digit = FLOOR(fracPart)
+        APPEND digit (as base digit) to fracString
+        fracPart -= digit
+
+    TRIM trailing zeroes from fracString
+    IF fracString is empty:
+        RETURN (isNegative ? "-" : "") + intString
+
+    RETURN (isNegative ? "-" : "") + intString + "." + fracString
+
+FUNCTION displayRowConversions(index, decimalValue):
+    SET row[index] BIN display = formatBase(decimalValue, 2, 0)
+    SET row[index] OCT display = formatBase(decimalValue, 8, 0)
+    SET row[index] DEC display = decimalValue
+    SET row[index] HEX display = formatBase(decimalValue, 16, 0)
+
+FUNCTION clearRowConversions(index):
+    RESET row[index] BIN/OCT/DEC/HEX displays to "-"
+
+
+--------------------------------------------------------------------------
+6. EXPRESSION PARSER & EVALUATOR (TOKENIZER, SHUNTING-YARD & AST)
+--------------------------------------------------------------------------
+FUNCTION tokenize(exprString):
+    IF exprString is empty:
+        THROW SyntaxError "Expression is empty"
+
+    REPLACE unicode "×" -> "*", "÷" -> "/", "−" -> "-"
+    tokens = []
+
+    WHILE characters remain in exprString:
+        IF whitespace: SKIP
+        IF digit or decimal point:
+            PARSE complete numeric literal
+            CHECK for implicit multiplication with previous token
+            APPEND { type:"NUMBER", value:number }
+
+        ELSE IF letter:
+            PARSE complete variable identifier (e.g. "A", "B")
+            CHECK for implicit multiplication with previous token
+            APPEND { type:"VARIABLE", value:variableName }
+
+        ELSE IF "(":
+            CHECK for implicit multiplication with previous token
+            APPEND { type:"LPAREN", value:"(" }
+
+        ELSE IF ")":
+            APPEND { type:"RPAREN", value:")" }
+
+        ELSE IF operator in ["+", "-", "*", "/"]:
+            isUnary = (at start of expression) OR (previous token is OPERATOR or LPAREN)
+            IF operator is "-":
+                APPEND { type:"OPERATOR", value: (isUnary ? "NEG" : "-") }
+            ELSE IF operator is "+":
+                IF NOT isUnary: APPEND { type:"OPERATOR", value:"+" }
+            ELSE:
+                IF isUnary: THROW SyntaxError "Unexpected operator missing left operand"
+                APPEND { type:"OPERATOR", value:operator }
+
+        ELSE:
+            THROW SyntaxError "Unrecognized character"
+
+    IF last token is OPERATOR:
+        THROW SyntaxError "Expression cannot end with an operator"
+
+    RETURN tokens
+
+
+FUNCTION parseToRPN(tokens):
+    // Dijkstra's Shunting-yard algorithm
+    outputQueue = []
+    operatorStack = []
+
+    FOR each token in tokens:
+        IF token is NUMBER or VARIABLE:
+            ENQUEUE token to outputQueue
+
+        ELSE IF token is OPERATOR:
+            op1 = token.value
+            WHILE (operatorStack has elements) AND (top is not LPAREN):
+                op2 = top of operatorStack
+                IF (op1 is Left-Associative AND PRECEDENCE[op1] <= PRECEDENCE[op2]) OR
+                   (op1 is Right-Associative AND PRECEDENCE[op1] < PRECEDENCE[op2]):
+                    POP op2 from operatorStack and ENQUEUE to outputQueue
+                ELSE:
+                    BREAK
+            PUSH token onto operatorStack
+
+        ELSE IF token is LPAREN:
+            PUSH token onto operatorStack
+
+        ELSE IF token is RPAREN:
+            WHILE (operatorStack has elements) AND (top is not LPAREN):
+                POP operator from operatorStack and ENQUEUE to outputQueue
+            IF no matching LPAREN found:
+                THROW SyntaxError "Mismatched parentheses"
+            POP LPAREN from operatorStack
+
+    WHILE operatorStack has elements:
+        IF top is LPAREN:
+            THROW SyntaxError "Mismatched parentheses: unclosed ("
+        POP operator from operatorStack and ENQUEUE to outputQueue
+
+    RETURN outputQueue
+
+
+FUNCTION buildAST(rpnTokens, variableMap):
+    stack = []
+
+    FOR each token in rpnTokens:
+        IF token is NUMBER:
+            PUSH leaf node { type:"NUM", value:token.value } onto stack
+
+        ELSE IF token is VARIABLE:
+            varData = variableMap[token.value]
+            IF varData does not exist:
+                THROW SyntaxError "Variable {token.value} has no assigned input"
+            PUSH leaf node { type:"VAR", name:token.value, value:varData.decVal, ... } onto stack
+
+        ELSE IF token is OPERATOR:
+            IF token.value == "NEG":
+                child = POP from stack
+                PUSH { type:"UNARY", op:"NEG", child } onto stack
+            ELSE:
+                right = POP from stack
+                left  = POP from stack
+                PUSH { type:"BINARY", op:token.value, left, right } onto stack
+
+    RETURN root node (stack[0])
+
+
+FUNCTION evaluateWithSteps(rootNode):
+    steps = []
+    activeTree = CLONE(rootNode)
+
+    RECORD initial decimal substitution step into steps
+
+    WHILE activeTree is not a single number:
+        FIND deepest reducible operation in activeTree (innermost sub-expression)
+
+        IF operation is Binary (left op right):
+            SWITCH op:
+                CASE "+": res = left + right
+                CASE "-": res = left - right
+                CASE "*": res = left * right
+                CASE "/":
+                    IF right == 0:
+                        THROW MathError "Division by zero is undefined"
+                    res = left / right
+
+            REPLACE that operation node with { type:"NUM", value:res }
+            RECORD intermediate reduced expression and action into steps
+
+        IF operation is Unary (NEG child):
+            res = -child
+            REPLACE that node with { type:"NUM", value:res }
+            RECORD intermediate reduced expression into steps
+
+    RETURN finalResult, formatted formulas, and steps list
+
+
+--------------------------------------------------------------------------
+7. MAIN CALCULATION PROCESS
+--------------------------------------------------------------------------
+FUNCTION processCalculation():
+    HIDE error banner
+    rows = all rendered input rows
+    variableMap = {}
+    allValid = true
+
+    // ---- Phase 1: validate inputs & build variable map ----
+    FOR each row i in rows:
+        varLetter = getVarLetter(i)
+        base  = selected base of row i
+        value = trimmed input of row i
+
+        IF value is empty OR NOT isValidNumber(value, base):
+            SHOW error on row i
+            allValid = false
+            CONTINUE
+
+        decVal = parseToDecimal(value, base)
+        SAVE { index:i, base, rawVal:value, decVal } into variableMap[varLetter]
+
+    // ---- Phase 2: parse & validate expression ----
+    expressionString = trimmed text from expression input field
+    IF expressionString is empty:
+        SHOW error "Missing Expression"
+        HIDE results section
+        RETURN
+
+    TRY:
+        tokens = tokenize(expressionString)
+
+        // Verify all variables used in the expression exist in input rows
+        FOR each token in tokens WHERE type is "VARIABLE":
+            varIndex = getIndexFromVar(token.value)
+            IF varIndex < 1 OR varIndex > rows.length:
+                THROW SyntaxError "Variable '{token.value}' is not defined. Active inputs are A through {maxVar}."
+
+        IF NOT allValid:
+            SHOW error "Invalid Input Digits"
+            HIDE results section
+            RETURN
+
+        rpnTokens = parseToRPN(tokens)
+        astRoot   = buildAST(rpnTokens, variableMap)
+
+    CATCH SyntaxError err:
+        SHOW error banner with err.message
+        HIDE results section
+        RETURN
+
+    // ---- Phase 3: evaluate with steps & handle arithmetic errors ----
+    TRY:
+        evalOutput = evaluateWithSteps(astRoot)
+        arithmeticError = null
+    CATCH MathError err:
+        arithmeticError = err
+
+    // ---- Phase 4: render results & multi-base outputs ----
+    SHOW results section
+    DISPLAY variable expression: nodeToString(astRoot, "VAR")
+    DISPLAY multi-base formula:  nodeToString(astRoot, "BASE")
+
+    IF arithmeticError is present:
+        SET status pill = "Arithmetic Error"
+        DISPLAY decimal formula = "... = Undefined (" + arithmeticError.message + ")"
+        SHOW error banner ("Division by zero is undefined")
+        DISPLAY halted step in step-by-step breakdown
+        SET all 4 final result tiles (BIN, OCT, DEC, HEX) = "Undefined (Div by 0)"
+
+    ELSE:
+        SET status pill = "Evaluation Complete"
+        DISPLAY decimal formula = "... = " + evalOutput.result
+        RENDER all reduction steps into the Step-by-Step breakdown list
+
+        // Display final result in all 4 number systems
+        SET finalBin = formatBase(evalOutput.result, 2, precision=6)
+        SET finalOct = formatBase(evalOutput.result, 8, precision=6)
+        SET finalDec = formatBase(evalOutput.result, 10, precision=6)
+        SET finalHex = formatBase(evalOutput.result, 16, precision=6)
+
+    SCROLL results section into view
+
+
+--------------------------------------------------------------------------
+8. PRESETS
+--------------------------------------------------------------------------
+PRESETS = {
+    1: { name:"BIN + OCT + DEC",       expr:"(A + B) * C",     data:[ (base2,"1010"), (base8,"12"), (base10,"5") ] },
+    2: { name:"BIN + DEC + HEX",       expr:"(A + B) - C",     data:[ (base2,"1111"), (base10,"20"), (base16,"A") ] },
+    3: { name:"OCT + DEC + HEX",       expr:"(A - B) / C",     data:[ (base8,"30"),  (base10,"16"), (base16,"4") ] },
+    4: { name:"BIN + OCT + HEX",       expr:"(A * B) / C",     data:[ (base2,"1100"), (base8,"10"), (base16,"2") ] },
+    5: { name:"BIN + OCT + DEC + HEX", expr:"(A + B - C) * D", data:[ (base2,"1010"), (base8,"12"), (base10,"25"), (base16,"1F") ] }
+}
+
+FUNCTION loadPreset(presetKey):
+    preset = PRESETS[presetKey]
+    IF preset does not exist: RETURN
+
+    SET number-of-inputs field = preset.data.length
+    CALL renderInputs(preset.data.length)
+
+    FOR each item in preset.data at index i:
+        SET row[i] base  = item.base
+        SET row[i] value = item.val
+        UPDATE row[i] indicator label
+        CALL validateRow(i)
+
+    SET expression input = preset.expr
+    HIGHLIGHT matching expression preset chip
+    CALL processCalculation()
+
+
+--------------------------------------------------------------------------
+9. EVENT WIRING & INITIALIZATION
+--------------------------------------------------------------------------
+ON click of any preset button:
+    CALL loadPreset(clicked button's preset id)
+
+ON click of any expression preset chip:
+    SET expression input = chip's expression
+    CALL processCalculation()
+
+ON click of virtual keypad buttons:
+    INSERT character (variable, operator, or parenthesis) at cursor position
+
+ON click of backspace button:
+    DELETE character immediately before cursor
+
+ON click of clear expression button:
+    CLEAR expression text input
+
+ON click "Step-by-Step" header:
+    TOGGLE visibility of step breakdown content
+
+ON click "Update Fields" button:
+    CALL renderInputs()
+
+ON click "Calculate & Convert All" button:
+    CALL processCalculation()
+
+ON page load:
+    CALL renderInputs(3)
+    CALL loadPreset(5)   // load default Preset 5 demonstrating (A + B - C) * D

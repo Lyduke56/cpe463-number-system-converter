@@ -54,6 +54,26 @@ Unlike basic calculators that evaluate operations sequentially from left to righ
 - **Undefined Variables:** Catches references to variables that do not correspond to any rendered input row.
 - **Arithmetic Safety:** Detects mathematical errors such as division by zero ($X \div 0$), safely halting execution and rendering descriptive warnings without crashing the interface.
 
+### 2.7 Complement Computation Engine
+- **Supports All 4 Number Systems:**
+  - **Binary:** 1's complement (flip bits) and 2's complement (flip + 1)
+  - **Octal:** 7's complement and 8's complement
+  - **Decimal:** 9's complement and 10's complement
+  - **Hexadecimal:** 15's complement and 16's complement
+- **Configurable Digit Width:** Auto-detects from input length or allows manual specification (4-bit, 8-bit, custom $n$-digit)
+- **Step-by-Step Breakdown:** Shows the digit-by-digit complement computation process
+- **Multi-Base Conversion:** Displays complement values converted across all 4 bases simultaneously
+- **Quick Presets:** Pre-configured examples for each base (BIN 4-bit, BIN 8-bit, OCT 3-digit, DEC 4-digit, HEX 3-digit)
+
+### 2.8 Subtraction via Complements
+- **Two Complement Methods Side-by-Side:**
+  - **Method 1 — $(r-1)$'s Complement (End-Around Carry):** Computes complement of subtrahend, adds to minuend, handles end-around carry for positive results or re-complements for negative results
+  - **Method 2 — $r$'s Complement (Discard Carry):** Computes radix complement of subtrahend, adds to minuend, discards carry for positive results or re-complements for negative results
+- **Handles Both Positive and Negative Results:** Correctly detects carry/no-carry conditions and applies the appropriate sign determination
+- **Detailed Step-by-Step Cards:** Each method displays numbered steps showing padding, complement computation, addition with carry tracking, and final result determination
+- **Cross-Base Subtraction Support:** Minuend and subtrahend can be in different bases; automatic conversion to a common working base
+- **Subtraction Presets:** Pre-configured examples including positive and negative result cases across Binary, Octal, Decimal, and Hexadecimal
+
 ---
 
 ## 3. Project File Structure

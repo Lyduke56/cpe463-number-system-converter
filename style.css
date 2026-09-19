@@ -1080,6 +1080,806 @@ button:active {
     text-shadow: 0 0 16px var(--primary-glow);
 }
 
+/* ================================================================ */
+/* COMPLEMENT & SUBTRACTION SECTION                                  */
+/* ================================================================ */
+
+.complement-section {
+    margin-top: 3rem;
+    padding-top: 2.5rem;
+    border-top: 2px solid rgba(255, 255, 255, 0.06);
+}
+
+.complement-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.complement-title-area {
+    flex: 1;
+    min-width: 250px;
+}
+
+.complement-title {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.3rem;
+    background: linear-gradient(125deg, #ffffff 20%, var(--accent-emerald) 65%, var(--accent-cyan));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.complement-subtitle {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    font-weight: 400;
+}
+
+/* Mode Toggle */
+.comp-mode-toggle {
+    display: flex;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    padding: 3px;
+    gap: 3px;
+    flex-shrink: 0;
+}
+
+.comp-mode-btn {
+    font-family: var(--font-display) !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    padding: 0.5rem 1rem !important;
+    border: 1px solid transparent !important;
+    border-radius: 6px !important;
+    background: transparent !important;
+    color: var(--text-muted) !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.comp-mode-btn:hover {
+    color: var(--text-main) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    transform: none !important;
+}
+
+.comp-mode-btn.active {
+    background: linear-gradient(135deg, rgba(52, 211, 153, 0.2), rgba(34, 211, 238, 0.15)) !important;
+    border-color: rgba(52, 211, 153, 0.4) !important;
+    color: var(--accent-emerald) !important;
+    box-shadow: 0 0 12px rgba(52, 211, 153, 0.2);
+}
+
+/* Complement Presets Bar */
+.comp-presets-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    padding: 0.85rem 1.15rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.5rem;
+}
+
+.comp-presets-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.comp-presets-group-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    min-width: 90px;
+}
+
+.comp-preset-btn {
+    font-family: var(--font-mono) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: var(--text-muted) !important;
+    border: 1px solid var(--glass-border) !important;
+    padding: 0.35rem 0.7rem !important;
+    border-radius: var(--radius-sm) !important;
+    cursor: pointer;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.02em;
+    transition: all 0.15s ease;
+}
+
+.comp-preset-btn:hover {
+    background: rgba(52, 211, 153, 0.14) !important;
+    color: var(--text-main) !important;
+    border-color: var(--accent-emerald) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Complement Panel Content */
+.comp-panel-content {
+    animation: fadeIn 0.25s ease-out;
+}
+
+/* Input Card */
+.comp-input-card {
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 1.35rem 1.5rem;
+    margin-bottom: 1.5rem;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.comp-input-row {
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.comp-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.comp-field-narrow {
+    width: 90px;
+}
+
+.comp-field-auto {
+    width: 65px;
+}
+
+.comp-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.comp-digit-input {
+    width: 100%;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.comp-auto-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.7rem 0;
+    white-space: nowrap;
+}
+
+.comp-auto-label input[type="checkbox"] {
+    accent-color: var(--accent-emerald);
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+}
+
+.comp-action-row {
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.comp-primary-btn {
+    font-size: 0.95rem !important;
+    padding: 0.8rem 2.2rem !important;
+    background: linear-gradient(135deg, #059669, var(--accent-cyan)) !important;
+}
+
+/* Complement Results Area */
+.comp-results-area {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Complement Result Header */
+.comp-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    padding: 1rem 1.25rem;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-sm);
+}
+
+.comp-original-display {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.comp-orig-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.comp-orig-value {
+    font-family: var(--font-mono);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 0 12px var(--primary-glow);
+}
+
+.comp-orig-value sub,
+.comp-card-dec sub,
+.comp-conv-val sub,
+.sub-operand sub,
+.sub-answer sub,
+.sub-dec-answer sub,
+.sub-result-value sub,
+.sub-result-dec sub {
+    font-size: 0.65em;
+    color: var(--text-faint);
+}
+
+.comp-orig-dec {
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.comp-info-badges {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.comp-info-badge {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--accent-emerald);
+    background: rgba(52, 211, 153, 0.12);
+    border: 1px solid rgba(52, 211, 153, 0.3);
+    padding: 0.2rem 0.55rem;
+    border-radius: 20px;
+    letter-spacing: 0.04em;
+}
+
+/* Complement Results Grid (2 cards side-by-side) */
+.comp-results-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.comp-card {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: var(--radius-md);
+    padding: 1.35rem;
+    transition: all 0.2s ease;
+}
+
+.comp-card.diminished {
+    border: 1px solid rgba(34, 211, 238, 0.25);
+}
+
+.comp-card.radix {
+    border: 1px solid rgba(129, 140, 248, 0.3);
+}
+
+.comp-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.comp-card.diminished:hover {
+    border-color: rgba(34, 211, 238, 0.5);
+}
+
+.comp-card.radix:hover {
+    border-color: rgba(129, 140, 248, 0.5);
+}
+
+.comp-card-header {
+    margin-bottom: 0.85rem;
+}
+
+.comp-card-title {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 0.15rem;
+}
+
+.diminished .comp-card-title {
+    color: var(--accent-cyan);
+}
+
+.radix .comp-card-title {
+    color: var(--primary);
+}
+
+.comp-card-subtitle {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.comp-card-value {
+    font-family: var(--font-mono);
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.06em;
+    word-break: break-all;
+    margin-bottom: 0.25rem;
+}
+
+.diminished .comp-card-value {
+    text-shadow: 0 0 18px rgba(34, 211, 238, 0.4);
+}
+
+.radix .comp-card-value {
+    text-shadow: 0 0 18px var(--primary-glow);
+}
+
+.comp-card-dec {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.85rem;
+}
+
+/* Method Breakdown */
+.comp-card-method {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    padding: 0.75rem 0.85rem;
+    margin-bottom: 0.85rem;
+}
+
+.comp-method-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+}
+
+.comp-digit-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.comp-digit-step {
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background: rgba(34, 211, 238, 0.08);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(34, 211, 238, 0.15);
+}
+
+.radix .comp-digit-step {
+    background: rgba(129, 140, 248, 0.08);
+    color: #a5b4fc;
+    border-color: rgba(129, 140, 248, 0.15);
+}
+
+.comp-digit-step.add-one {
+    background: rgba(251, 191, 36, 0.1) !important;
+    color: var(--accent-amber) !important;
+    border-color: rgba(251, 191, 36, 0.25) !important;
+    font-weight: 700;
+}
+
+/* Complement Conversions Grid */
+.comp-card-conversions {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    padding: 0.65rem 0.75rem;
+}
+
+.comp-conv-title {
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 0.4rem;
+}
+
+.comp-conv-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.4rem;
+}
+
+.comp-conv-cell {
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.3rem 0.45rem;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.comp-conv-base {
+    font-size: 0.58rem;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: 0.05em;
+}
+
+.comp-conv-val {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-main);
+    word-break: break-all;
+}
+
+/* ================================================================ */
+/* SUBTRACTION MODE STYLES                                           */
+/* ================================================================ */
+
+.sub-input-grid {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.sub-input-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.sub-group-label {
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+}
+
+.sub-input-row {
+    display: flex;
+    gap: 0.65rem;
+    align-items: flex-end;
+}
+
+.sub-minus-symbol {
+    font-family: var(--font-mono);
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent-amber);
+    padding: 0 0.5rem;
+    text-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+    line-height: 1;
+    align-self: center;
+}
+
+.sub-digit-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-end;
+    margin-bottom: 0.5rem;
+    padding-top: 0.65rem;
+    border-top: 1px dashed rgba(255, 255, 255, 0.06);
+}
+
+/* Subtraction Results */
+.sub-result-header {
+    background: rgba(0, 0, 0, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-sm);
+    padding: 1.15rem 1.35rem;
+    margin-bottom: 1.25rem;
+}
+
+.sub-expression {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+}
+
+.sub-operand {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.sub-operator {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--accent-amber);
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+}
+
+.sub-equals {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-faint);
+}
+
+.sub-answer {
+    font-size: 1.35rem;
+    font-weight: 800;
+}
+
+.sub-answer.positive {
+    color: var(--accent-emerald);
+    text-shadow: 0 0 12px rgba(52, 211, 153, 0.4);
+}
+
+.sub-answer.negative {
+    color: var(--error);
+    text-shadow: 0 0 12px rgba(248, 113, 113, 0.4);
+}
+
+.sub-dec-answer {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.sub-base-note {
+    font-size: 0.76rem;
+    color: var(--text-faint);
+    font-style: italic;
+    margin-top: 0.5rem;
+}
+
+/* Side-by-side method cards */
+.sub-methods-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.sub-method-card {
+    background: rgba(0, 0, 0, 0.22);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    transition: all 0.2s ease;
+}
+
+.sub-method-card.diminished {
+    border: 1px solid rgba(34, 211, 238, 0.22);
+}
+
+.sub-method-card.radix {
+    border: 1px solid rgba(129, 140, 248, 0.25);
+}
+
+.sub-method-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.sub-method-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.sub-method-title {
+    font-family: var(--font-display);
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+
+.diminished .sub-method-title {
+    color: var(--accent-cyan);
+}
+
+.radix .sub-method-title {
+    color: var(--primary);
+}
+
+.sub-method-tag {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.18rem 0.5rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.diminished .sub-method-tag {
+    background: rgba(34, 211, 238, 0.1);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(34, 211, 238, 0.2);
+}
+
+.radix .sub-method-tag {
+    background: rgba(129, 140, 248, 0.1);
+    color: #a5b4fc;
+    border: 1px solid rgba(129, 140, 248, 0.2);
+}
+
+/* Step-by-step cards in subtraction */
+.sub-steps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+}
+
+.sub-step {
+    background: rgba(255, 255, 255, 0.025);
+    border-radius: 6px;
+    padding: 0.65rem 0.85rem;
+    border-left: 3px solid var(--glass-border-strong);
+    transition: border-color 0.2s ease;
+}
+
+.sub-step.positive {
+    border-left-color: var(--accent-emerald);
+    background: rgba(52, 211, 153, 0.05);
+}
+
+.sub-step.negative {
+    border-left-color: var(--error);
+    background: rgba(248, 113, 113, 0.05);
+}
+
+.sub-step-header {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 0.3rem;
+}
+
+.sub-step-num {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--primary);
+    min-width: 48px;
+}
+
+.sub-step-title {
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.sub-step-detail {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    word-break: break-all;
+    line-height: 1.5;
+}
+
+.sub-substeps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin-top: 0.4rem;
+    padding-left: 0.5rem;
+    border-left: 2px solid rgba(255, 255, 255, 0.06);
+}
+
+.sub-substep {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-faint);
+    padding: 0.12rem 0;
+}
+
+/* Subtraction Method Result */
+.sub-method-result {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    padding: 0.85rem 1rem;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+}
+
+.sub-method-result.positive {
+    background: rgba(52, 211, 153, 0.08);
+    border: 1px solid rgba(52, 211, 153, 0.25);
+}
+
+.sub-method-result.negative {
+    background: rgba(248, 113, 113, 0.08);
+    border: 1px solid rgba(248, 113, 113, 0.25);
+}
+
+.sub-result-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.sub-result-value {
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+.sub-method-result.positive .sub-result-value {
+    color: var(--accent-emerald);
+    text-shadow: 0 0 10px rgba(52, 211, 153, 0.3);
+}
+
+.sub-method-result.negative .sub-result-value {
+    color: var(--error);
+    text-shadow: 0 0 10px rgba(248, 113, 113, 0.3);
+}
+
+.sub-result-dec {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* Subtraction Final Conversions */
+.sub-final-conversions {
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(129, 140, 248, 0.35);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
 /* Accessibility */
 .sr-only {
     position: absolute;
@@ -1102,6 +1902,18 @@ button:active {
     .controls-wrapper {
         grid-template-columns: 1fr;
     }
+
+    .complement-header {
+        flex-direction: column;
+    }
+
+    .comp-mode-toggle {
+        width: 100%;
+    }
+
+    .comp-mode-btn {
+        flex: 1;
+    }
 }
 
 @media (max-width: 860px) {
@@ -1115,6 +1927,24 @@ button:active {
 
     .final-results-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .comp-results-grid,
+    .sub-methods-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .comp-conv-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .sub-input-grid {
+        flex-direction: column;
+    }
+
+    .sub-minus-symbol {
+        align-self: center;
+        padding: 0.25rem 0;
     }
 }
 
@@ -1146,5 +1976,23 @@ button:active {
 
     .operation-buttons {
         grid-template-columns: 1fr;
+    }
+
+    .complement-title {
+        font-size: 1.35rem;
+    }
+
+    .comp-input-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .comp-field-narrow,
+    .comp-field-auto {
+        width: 100%;
+    }
+
+    .comp-card-value {
+        font-size: 1.25rem;
     }
 }

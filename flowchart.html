@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPE463 - Number System Converter Flowcharts</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-card: #1e293b;
+            --border-color: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-cyan: #06b6d4;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-purple: #a855f7;
+            --accent-red: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 2rem 1.5rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .quick-nav {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .quick-nav a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .quick-nav a:hover {
+            background: rgba(6, 182, 212, 0.25);
+        }
+
+        /* Shape Legend Grid */
+        .legend-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .shape-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+            margin-top: 1rem;
+        }
+
+        .shape-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .shape-preview {
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.75rem;
+            width: 100%;
+        }
+
+        .shape-name {
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+            font-size: 1rem;
+        }
+
+        .shape-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Flowchart Sections */
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.75rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+        }
+
+        .chart-card p {
+            color: var(--text-secondary);
+            margin-bottom: 1.25rem;
+        }
+
+        .diagram-wrapper {
+            background: #090d16;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            text-align: center;
+        }
+
+        .diagram-wrapper svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .mermaid {
+            font-size: 0.9rem;
+        }
+
+        .print-bar {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 1rem;
+        }
+
+        .print-btn {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .print-btn:hover {
+            background: #2563eb;
+        }
+
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            .chart-card, .legend-section {
+                background: white;
+                border: 1px solid #ccc;
+                page-break-inside: avoid;
+            }
+            .diagram-wrapper {
+                background: white;
+            }
+            .print-bar, .quick-nav {
+                display: none;
+            }
+        }
+    </style>
+    <!-- Mermaid CDN for Interactive Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            themeVariables: {
+                darkMode: true,
+                background: '#090d16',
+                primaryColor: '#1e3a8a',
+                primaryBorderColor: '#3b82f6',
+                primaryTextColor: '#f8fafc',
+                lineColor: '#38bdf8',
+                secondaryColor: '#065f46',
+                tertiaryColor: '#78350f'
+            },
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>CPE463 - Number System Converter & Calculator</h1>
+            <p class="subtitle">Standard ANSI/ISO 5807 Programming Flowchart Diagrams</p>
+            <div class="quick-nav">
+                <a href="#legend">Shape Legend</a>
+                <a href="#master">1. Master System</a>
+                <a href="#pipeline">2. Calculation Pipeline</a>
+                <a href="#validation">3. Input Validation</a>
+                <a href="#conversion">4. Base Conversion</a>
+                <a href="#dom">5. Dynamic Rows</a>
+            </div>
+        </header>
+
+        <div class="print-bar">
+            <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+        </div>
+
+        <!-- 1. Geometric Shape Legend -->
+        <section class="legend-section" id="legend">
+            <div class="section-label">ANSI / ISO 5807 Standard Programming Flowchart Shapes</div>
+            <h2 class="section-title">Standard Geometric Flowchart Symbols</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Traditional computer science flowchart shapes explicitly differentiate terminals, user operations, I/O streams, mathematical processes, conditional evaluations, loops, and subroutine calls:
+            </p>
+
+            <div class="shape-grid">
+                <!-- Terminal / Oval -->
+                <div class="shape-card">
+                    <div class="shape-preview">
+                        <svg width="150" height="46" viewBox="0 0 150 46">
+                            <rect x="5" y="5" width="140" height="36" rx="18" fill="#065f46" stroke="#10b981" stroke-width="2"/>
+                            <text x="75" y="28" fill="#ffffff" font-size="12" font-weight="bold" text-anchor="middle">Start / End</text>
+                        </svg>
+                    </div>
+                    <div class="shape-name">Terminal (Oval / Stadium)</div>
+                    <div class="shape-desc">Program startup, termination, function entry, or return.</div>
+                </div>
+
+                <!-- Manual Input / Trapezoid -->
+                <div class="shape-card">
+                    <div class="shape-preview">
+                        <svg width="150" height="46" viewBox="0 0 150 46">
+                            <polygon points="10,40 140,40 150,6 0,6" fill="#78350f" stroke="#f59e0b" stroke-width="2"/>
+                            <text x="75" y="28" fill="#ffffff" font-size="12" font-weight="bold" text-anchor="middle">User Action</text>
+                        </svg>
+                    </div>
+                    <div class="shape-name">Manual Input (Trapezoid)</div>
+                    <div class="shape-desc">Human user interaction: clicking buttons, selecting options, typing.</div>
+                </div>
+
+                <!-- Input / Output / Parallelogram -->
+                <div class="shape-card">
+                    <div class="shape-preview">
+                        <svg width="150" height="46" viewBox="0 0 150 46">
+                            <polygon points="25,40 145,40 125,6 5,6" fill="#1e3a8a" stroke="#38bdf8" stroke-width="2"/>
+                            <text x="75" y="28" fill="#ffffff" font-size="12" font-weight="bold" text-anchor="middle">Input / Output</text>
+                        </svg>
+                    </div>
+                    <div class="shape-name">Data I/O (Parallelogram)</div>
+                    <div class="shape-desc">Reading data values from input fields or displaying calculated outputs.</div>
+                </div>
+
+                <!-- Process / Rectangle -->
+                <div class="shape-card">
+                    <div class="shape-preview">
+                        <svg width="150" height="46" viewBox="0 0 150 46">
+                            <rect x="5" y="6" width="140" height="34" fill="#312e81" stroke="#818cf8" stroke-width="2"/>
+                            <text x="75" y="28" fill="#ffffff" font-size="12" font-weight="bold" text-anchor="middle">Process / Compute</text>
+                        </svg>
+                    </div>
+                    <div class="shape-name">Process (Rectangle)</div>
+                    <div class="shape-desc">Internal computation, data assignment, and arithmetic calculation.</div>
+                </div>
+
+                <!-- Decision / Diamond -->
+                <div class="shape-card">
+                    <div class="shape-preview">
+                        <svg width="150" height="56" viewBox="0 0 150 56">
+                            <polygon points="75,3 145,28 75,53 5,28" fill="#831843" stroke="#f43f5e" stroke-width="2"/>
+                            <text x="75" y="32" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">Condition?</text>
+                        </svg>
+                    </div>
+                    <div class="shape-name">Decision (Diamond)</div>
+                    <div class="shape-desc">Conditional branch (IF / SWITCH) yielding True/False or Yes/No paths.</div>
+                </div>
+
+                <!-- Preparation / Loop / Hexagon -->
+                <div class="shape-card">
+                    <div class="shape-preview">
+                        <svg width="150" height="46" viewBox="0 0 150 46">
+                            <polygon points="20,23 5,6 145,6 130,23 145,40 5,40" fill="#4c1d95" stroke="#a855f7" stroke-width="2"/>
+                            <text x="75" y="27" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">For / While Loop</text>
+                        </svg>
+                    </div>
+                    <div class="shape-name">Preparation (Hexagon)</div>
+                    <div class="shape-desc">Loop control, index initialization, and iteration counters.</div>
+                </div>
+
+                <!-- Subroutine / Double Rectangle -->
+                <div class="shape-card">
+                    <div class="shape-preview">
+                        <svg width="150" height="46" viewBox="0 0 150 46">
+                            <rect x="5" y="6" width="140" height="34" fill="#14532d" stroke="#4ade80" stroke-width="2"/>
+                            <line x1="20" y1="6" x2="20" y2="40" stroke="#4ade80" stroke-width="2"/>
+                            <line x1="130" y1="6" x2="130" y2="40" stroke="#4ade80" stroke-width="2"/>
+                            <text x="75" y="28" fill="#ffffff" font-size="12" font-weight="bold" text-anchor="middle">Subroutine</text>
+                        </svg>
+                    </div>
+                    <div class="shape-name">Predefined Process</div>
+                    <div class="shape-desc">Calling modular sub-functions (e.g. ParseToDecimal, FormatBase).</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Master System Flowchart -->
+        <section class="chart-card" id="master">
+            <h2 class="section-title">1. Master System Flowchart</h2>
+            <p>High-level operational lifecycle showing user triggers (trapezoids), event dispatching, and processing invocations.</p>
+            <div class="diagram-wrapper">
+                <pre class="mermaid">
+flowchart TD
+    Start(["Start Application"]) --> InitState["Initialize App State:<br/>Inputs = 3, Op = '+'"]
+    InitState --> SubInit[["Call RenderInputs(3)"]]
+    SubInit --> WaitEvent{{"Wait for User Event"}}
+
+    WaitEvent -->|"Click Preset"| UserPreset[/User Clicks Preset 1-5\]
+    WaitEvent -->|"Update Count"| UserCount[/User Sets Input Count\]
+    WaitEvent -->|"Select Op"| UserOp[/User Clicks +, -, *, /\]
+    WaitEvent -->|"Edit Field"| UserEdit[/User Types Value or Base\]
+    WaitEvent -->|"Click Calculate"| UserCalc[/User Clicks 'Calculate & Convert All'\]
+
+    UserPreset --> LoadPreset["Load Preset Data Array"]
+    LoadPreset --> RenderPreset[["Call RenderInputs(preset.length)"]]
+    RenderPreset --> AutoCalc[["Call ProcessCalculation()"]]
+
+    UserCount --> ReadCount[/Read Count Input/]
+    ReadCount --> CheckCount{"Count >= 3?"}
+    CheckCount -->|"Yes"| KeepCount["targetCount = Count"]
+    CheckCount -->|"No"| ClampCount["targetCount = 3"]
+    KeepCount --> RebuildDOM[["Call RenderInputs(targetCount)"]]
+    ClampCount --> RebuildDOM
+    RebuildDOM --> WaitEvent
+
+    UserOp --> SetOp["currentOperation = selectedOp"]
+    SetOp --> UpdateOpBtn["Update Active Button UI"]
+    UpdateOpBtn --> WaitEvent
+
+    UserEdit --> ValidateRow[["Call ValidateRow(index)"]]
+    ValidateRow --> WaitEvent
+
+    UserCalc --> ExecCalc[["Call ProcessCalculation()"]]
+    AutoCalc --> ExecCalc
+    ExecCalc --> WaitEvent
+                </pre>
+            </div>
+        </section>
+
+        <!-- 3. Core Calculation Pipeline -->
+        <section class="chart-card" id="pipeline">
+            <h2 class="section-title">2. Core Calculation Engine (`ProcessCalculation`)</h2>
+            <p>The primary 4-phase algorithm with validation, per-row multi-base matrices, sequential chain arithmetic, and final conversions.</p>
+            <div class="diagram-wrapper">
+                <pre class="mermaid">
+flowchart TD
+    StartCalc(["Start ProcessCalculation()"]) --> ReadRows[/Read All Input Rows from DOM/]
+    ReadRows --> InitFlags["allValid = true<br/>decimalValues = [ ]<br/>originalTokens = [ ]<br/>decimalTokens = [ ]"]
+
+    InitFlags --> PrepLoop{{For i = 1 to TotalRows}}
+    PrepLoop --> ReadRowIO[/Read base and rawVal for Row i/]
+    ReadRowIO --> CheckEmpty{"rawVal is Empty?"}
+
+    CheckEmpty -->|"Yes"| OutEmptyErr[/Display 'Input cannot be empty'/]
+    OutEmptyErr --> ClearMatrix1[/Clear Row i Conversion Matrix/]
+    ClearMatrix1 --> FlagInvalid1["allValid = false"]
+    FlagInvalid1 --> NextRowStep
+
+    CheckEmpty -->|"No"| CallValidate[["IsValidNumber(rawVal, base)"]]
+    CallValidate --> CheckValidResult{"Is Valid?"}
+
+    CheckValidResult -->|"No"| OutCharErr[/Display 'Invalid character' Error/]
+    OutCharErr --> ClearMatrix2[/Clear Row i Conversion Matrix/]
+    ClearMatrix2 --> FlagInvalid2["allValid = false"]
+    FlagInvalid2 --> NextRowStep
+
+    CheckValidResult -->|"Yes"| ClearErrUI["Remove Error Styling on Row i"]
+    ClearErrUI --> CallParse[["decVal = ParseToDecimal(rawVal, base)"]]
+    CallParse --> AppendDec["Append decVal to decimalValues"]
+
+    AppendDec --> CallFormatBin[["binStr = FormatBase(decVal, 2, 0)"]]
+    CallFormatBin --> CallFormatOct[["octStr = FormatBase(decVal, 8, 0)"]]
+    CallFormatOct --> CallFormatHex[["hexStr = FormatBase(decVal, 16, 0)"]]
+    CallFormatHex --> DisplayRowMatrix[/Output Row i Matrix: BIN, OCT, DEC, HEX/]
+
+    DisplayRowMatrix --> BuildToken["Append (rawVal + Subscript) to originalTokens<br/>Append decVal to decimalTokens"]
+    BuildToken --> NextRowStep["Increment i"]
+    NextRowStep --> PrepLoop
+
+    PrepLoop -->|"Loop Complete"| CheckAllValid{"allValid == true AND<br/>decimalValues.length == TotalRows?"}
+    CheckAllValid -->|"No"| HideResults["Hide Results Section"]
+    HideResults --> ExitCalc(["Halt / Return"])
+
+    CheckAllValid -->|"Yes"| InitMath["computedResult = decimalValues[0]<br/>isDivByZero = false<br/>divZeroIndex = null"]
+    InitMath --> MathLoop{{For k = 1 to TotalRows - 1}}
+
+    MathLoop --> FetchNext["nextVal = decimalValues[k]"]
+    FetchNext --> BranchOp{"currentOperation"}
+
+    BranchOp -->|"+"| DoAdd["computedResult = computedResult + nextVal"] --> NextK["Increment k"]
+    BranchOp -->|"-"| DoSub["computedResult = computedResult - nextVal"] --> NextK
+    BranchOp -->|"*"| DoMul["computedResult = computedResult * nextVal"] --> NextK
+    BranchOp -->|"/"| CheckZero{"nextVal == 0?"}
+
+    CheckZero -->|"Yes"| SetDivZero["isDivByZero = true<br/>divZeroIndex = k + 1"]
+    SetDivZero --> BreakLoop["Break Out of Math Loop"]
+    CheckZero -->|"No"| DoDiv["computedResult = computedResult / nextVal"] --> NextK
+    NextK --> MathLoop
+
+    MathLoop -->|"Math Complete"| CheckDivFlag{"isDivByZero == true?"}
+    BreakLoop --> CheckDivFlag
+
+    CheckDivFlag -->|"Yes"| ShowDivZeroErr[/Output 'Division by Zero' Error on Input divZeroIndex/]
+    ShowDivZeroErr --> FormatFormulaErr["formula = decimalTokens + ' = Undefined'"]
+    FormatFormulaErr --> OutTilesErr[/Display 'Undefined (Div by 0)' on All 4 Final Result Tiles/]
+
+    CheckDivFlag -->|"No"| FormatFormulaNormal["formula = decimalTokens + ' = ' + computedResult"]
+    FormatFormulaNormal --> FinalBin[["finalBin = FormatBase(computedResult, 2, 6)"]]
+    FinalBin --> FinalOct[["finalOct = FormatBase(computedResult, 8, 6)"]]
+    FinalOct --> FinalDec[["finalDec = FormatBase(computedResult, 10, 6)"]]
+    FinalDec --> FinalHex[["finalHex = FormatBase(computedResult, 16, 6)"]]
+    FinalHex --> OutTilesNormal[/Display finalBin, finalOct, finalDec, finalHex on Result Tiles/]
+
+    OutTilesErr --> DisplayExpr[/Output expressionString to expression-display<br/>Output formula to decimal-formula/]
+    OutTilesNormal --> DisplayExpr
+    DisplayExpr --> RevealUI["Reveal Results Section & Smooth Scroll"]
+    RevealUI --> EndCalc(["End ProcessCalculation()"])
+                </pre>
+            </div>
+        </section>
+
+        <!-- 4. Validation Subroutine -->
+        <section class="chart-card" id="validation">
+            <h2 class="section-title">3. Input Validation Subroutine (`IsValidNumber`)</h2>
+            <p>Character compliance checks for Base 2, 8, 10, and 16.</p>
+            <div class="diagram-wrapper">
+                <pre class="mermaid">
+flowchart TD
+    StartVal(["Start IsValidNumber(value, base)"]) --> CheckEmpty{"value is Empty or Null?"}
+    CheckEmpty -->|"Yes"| RetFalse1(["Return False"])
+
+    CheckEmpty -->|"No"| CheckSign{"First Char == '-'?"}
+    CheckSign -->|"Yes"| StripSign["cleanVal = value without '-'"]
+    CheckSign -->|"No"| KeepVal["cleanVal = value"]
+
+    StripSign --> CheckCleanEmpty{"cleanVal is Empty?"}
+    CheckCleanEmpty -->|"Yes"| RetFalse2(["Return False"])
+    CheckCleanEmpty -->|"No"| SwitchBase{"base Radix"}
+    KeepVal --> SwitchBase
+
+    SwitchBase -->|"Base 2"| SetBinPattern["Allowed: '0', '1'"]
+    SwitchBase -->|"Base 8"| SetOctPattern["Allowed: '0'..'7'"]
+    SwitchBase -->|"Base 10"| SetDecPattern["Allowed: '0'..'9'"]
+    SwitchBase -->|"Base 16"| SetHexPattern["Allowed: '0'-'9', 'A'-'F', 'a'-'f'"]
+
+    SetBinPattern --> TestChars{{For each char in cleanVal}}
+    SetOctPattern --> TestChars
+    SetDecPattern --> TestChars
+    SetHexPattern --> TestChars
+
+    TestChars --> MatchCheck{"char matches Allowed Pattern?"}
+    MatchCheck -->|"No"| RetFalse3(["Return False"])
+    MatchCheck -->|"Yes"| NextChar["Next Character"]
+    NextChar --> TestChars
+
+    TestChars -->|"All Characters Validated"| RetTrue(["Return True"])
+                </pre>
+            </div>
+        </section>
+
+        <!-- 5. Base Conversion Subroutines -->
+        <section class="chart-card" id="conversion">
+            <h2 class="section-title">4. Conversion Subroutines (`ParseToDecimal` & `FormatBase`)</h2>
+            <p>Mathematical conversions between arbitrary number systems and decimal.</p>
+            <div class="diagram-wrapper">
+                <pre class="mermaid">
+flowchart TD
+    subgraph S1 ["Subroutine: ParseToDecimal(valueStr, base)"]
+        StartP(["Start ParseToDecimal"]) --> CheckNeg{"Starts with '-'?"}
+        CheckNeg -->|"Yes"| NegTrue["isNeg = true<br/>cleanStr = valueStr without '-'"]
+        CheckNeg -->|"No"| NegFalse["isNeg = false<br/>cleanStr = valueStr"]
+        NegTrue --> InitP["decimal = 0"]
+        NegFalse --> InitP
+        InitP --> LoopP{{For each char in cleanStr}}
+        LoopP --> CharNum["digit = ConvertCharToNumber(char)"]
+        CharNum --> Accum["decimal = (decimal * base) + digit"]
+        Accum --> LoopP
+        LoopP -->|"Done"| CheckSignApply{"isNeg == true?"}
+        CheckSignApply -->|"Yes"| Negate["decimal = -decimal"]
+        CheckSignApply -->|"No"| ReturnP(["Return decimal"])
+        Negate --> ReturnP
+    end
+
+    subgraph S2 ["Subroutine: FormatBase(num, base, precision)"]
+        StartF(["Start FormatBase"]) --> CheckSpecial{"Is NaN or Infinite?"}
+        CheckSpecial -->|"Yes"| RetSpecial(["Return 'NaN' or 'Infinity'"])
+        CheckSpecial -->|"No"| Decomp["isNeg = num < 0<br/>intPart = FLOOR(ABS(num))<br/>fracPart = ABS(num) - intPart"]
+        Decomp --> IntConv["intStr = ConvertIntegerBySuccessiveDivision(intPart, base)"]
+        IntConv --> CheckFrac{"fracPart == 0 OR precision <= 0?"}
+        CheckFrac -->|"Yes"| RetIntOnly(["Return (isNeg ? '-' : '') + intStr"])
+        CheckFrac -->|"No"| LoopFrac{{While fracPart > 0 AND count < precision}}
+        LoopFrac --> Scale["fracPart = fracPart * base<br/>digit = FLOOR(fracPart)"]
+        Scale --> AppendF["fracStr = fracStr + DigitToChar(digit)<br/>fracPart = fracPart - digit<br/>count = count + 1"]
+        AppendF --> LoopFrac
+        LoopFrac -->|"Done"| RetFull(["Return (isNeg ? '-' : '') + intStr + '.' + fracStr"])
+    end
+                </pre>
+            </div>
+        </section>
+
+        <!-- 6. Dynamic Rows Management -->
+        <section class="chart-card" id="dom">
+            <h2 class="section-title">5. Dynamic Row Management & State Preservation (`RenderInputs`)</h2>
+            <p>Retaining existing user values and bases while restructuring dynamic input fields.</p>
+            <div class="diagram-wrapper">
+                <pre class="mermaid">
+flowchart TD
+    StartR(["Start RenderInputs(count)"]) --> CheckC{"count < 3 OR isNaN(count)?"}
+    CheckC -->|"Yes"| ClampC["count = 3"]
+    CheckC -->|"No"| UseC["Use count"]
+    ClampC --> HarvestIO
+    UseC --> HarvestIO
+
+    HarvestIO[/Read and Save Existing Row Values into existingData[]/]
+    HarvestIO --> ClearDOM["Clear inputsContainer.innerHTML"]
+    ClearDOM --> LoopR{{For i = 1 to count}}
+
+    LoopR --> CreateRow["Create Row DOM Elements and 4-Base Result Grid"]
+    CreateRow --> CheckSaved{"existingData[i-1] exists?"}
+    CheckSaved -->|"Yes"| Restore["Restore previous base and value"]
+    CheckSaved -->|"No"| SetDefault["Apply Default Base 10"]
+    Restore --> AppendDOM["Append Row to inputsContainer"]
+    SetDefault --> AppendDOM
+    AppendDOM --> LoopR
+
+    LoopR -->|"Done"| HideRes["Hide resultsSection"]
+    HideRes --> EndR(["End RenderInputs()"])
+                </pre>
+            </div>
+        </section>
+
+        <!-- 7. Complement Computation -->
+        <section class="chart-card" id="complement">
+            <h2 class="section-title">6. Complement Computation Flowchart</h2>
+            <p>Computing both (r−1)'s and r's complements for any number system.</p>
+            <div class="diagram-wrapper">
+                <pre class="mermaid">
+flowchart TD
+    StartComp(["Start ComputeComplements(value, base, numDigits)"]) --> PadInput["Pad value to numDigits width with leading zeros"]
+    PadInput --> CalcMax["maxDigit = base - 1"]
+
+    CalcMax --> DimLoop{{"For each digit i in padded value"}}
+    DimLoop --> SubDigit["complementDigit = maxDigit - digit[i]"]
+    SubDigit --> AppendDim["Append complementDigit to diminishedResult"]
+    AppendDim --> RecordStep["Record step: maxDigit - digit = complementDigit"]
+    RecordStep --> NextDim["Increment i"]
+    NextDim --> DimLoop
+
+    DimLoop -->|"All digits processed"| DimDone[/"Output: (r-1)'s Complement = diminishedResult"/]
+
+    DimDone --> AddOne["radixResult = diminishedResult + 1 in base r"]
+    AddOne --> CarryCheck{{"Process carry propagation"}}
+    CarryCheck --> RadDone[/"Output: r's Complement = radixResult"/]
+
+    RadDone --> EndComp(["End ComputeComplements()"])
+                </pre>
+            </div>
+        </section>
+
+        <!-- 8. Subtraction via (r-1)'s Complement -->
+        <section class="chart-card" id="sub-diminished">
+            <h2 class="section-title">7. Subtraction via (r−1)'s Complement (End-Around Carry)</h2>
+            <p>Subtraction using diminished radix complement with end-around carry handling.</p>
+            <div class="diagram-wrapper">
+                <pre class="mermaid">
+flowchart TD
+    StartSub(["Start SubtractDiminished(A, B, base, n)"]) --> PadAB["Pad A and B to n digits"]
+    PadAB --> CompB[["Compute (r-1)'s Complement of B"]]
+    CompB --> AddAComp["sum = A + complement(B) in base r"]
+    AddAComp --> CheckCarry{"Carry generated?"}
+
+    CheckCarry -->|"Yes Carry = 1"| EAC["End-Around Carry: Remove carry, add 1 to sum"]
+    EAC --> PosResult[/"Result = sum + 1, Positive"/]
+
+    CheckCarry -->|"No Carry = 0"| ReComp[["Take (r-1)'s complement of sum"]]
+    ReComp --> NegResult[/"Result = neg complement of sum, Negative"/]
+
+    PosResult --> ConvertAll["Convert result to all 4 bases"]
+    NegResult --> ConvertAll
+    ConvertAll --> EndSub(["End SubtractDiminished()"])
+                </pre>
+            </div>
+        </section>
+
+        <!-- 9. Subtraction via r's Complement -->
+        <section class="chart-card" id="sub-radix">
+            <h2 class="section-title">8. Subtraction via r's Complement (Discard Carry)</h2>
+            <p>Subtraction using radix complement with discard-carry handling.</p>
+            <div class="diagram-wrapper">
+                <pre class="mermaid">
+flowchart TD
+    StartSubR(["Start SubtractRadix(A, B, base, n)"]) --> PadABR["Pad A and B to n digits"]
+    PadABR --> CompBR[["Compute r's Complement of B"]]
+    CompBR --> AddACompR["sum = A + complement(B) in base r"]
+    AddACompR --> CheckCarryR{"Carry generated?"}
+
+    CheckCarryR -->|"Yes Carry = 1"| DiscardCarry["Discard carry bit"]
+    DiscardCarry --> PosResultR[/"Result = sum, Positive"/]
+
+    CheckCarryR -->|"No Carry = 0"| ReCompR[["Take r's complement of sum"]]
+    ReCompR --> NegResultR[/"Result = neg complement of sum, Negative"/]
+
+    PosResultR --> ConvertAllR["Convert result to all 4 bases"]
+    NegResultR --> ConvertAllR
+    ConvertAllR --> EndSubR(["End SubtractRadix()"])
+                </pre>
+            </div>
+        </section>
+    </div>
+</body>
+
+</html>

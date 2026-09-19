@@ -182,6 +182,151 @@
                 </div>
             </div>
         </div>
+
+        <!-- ================================================================ -->
+        <!-- COMPLEMENTS & SUBTRACTION PANEL                                   -->
+        <!-- ================================================================ -->
+        <div class="complement-section">
+            <div class="complement-header">
+                <div class="complement-title-area">
+                    <h2 class="complement-title">Complements &amp; Subtraction</h2>
+                    <p class="complement-subtitle">Compute (r−1)'s and r's complements for any base, and perform subtraction using complement methods</p>
+                </div>
+                <!-- Mode Toggle -->
+                <div class="comp-mode-toggle" id="comp-mode-toggle">
+                    <button type="button" class="comp-mode-btn active" id="comp-mode-display">Complement Display</button>
+                    <button type="button" class="comp-mode-btn" id="comp-mode-subtract">Subtraction via Complements</button>
+                </div>
+            </div>
+
+            <!-- Quick Presets Bar -->
+            <div class="comp-presets-bar">
+                <span class="bar-label">Quick Presets:</span>
+                <div class="comp-presets-row">
+                    <span class="comp-presets-group-label">Complements:</span>
+                    <button type="button" class="comp-preset-btn" data-comp-preset="bin4">BIN 4-bit</button>
+                    <button type="button" class="comp-preset-btn" data-comp-preset="bin8">BIN 8-bit</button>
+                    <button type="button" class="comp-preset-btn" data-comp-preset="oct3">OCT 3-digit</button>
+                    <button type="button" class="comp-preset-btn" data-comp-preset="dec4">DEC 4-digit</button>
+                    <button type="button" class="comp-preset-btn" data-comp-preset="hex3">HEX 3-digit</button>
+                </div>
+                <div class="comp-presets-row">
+                    <span class="comp-presets-group-label">Subtraction:</span>
+                    <button type="button" class="comp-preset-btn" data-comp-preset="sub-bin">BIN: 1010 − 0111</button>
+                    <button type="button" class="comp-preset-btn" data-comp-preset="sub-oct">OCT: 52 − 37</button>
+                    <button type="button" class="comp-preset-btn" data-comp-preset="sub-dec">DEC: 305 − 148</button>
+                    <button type="button" class="comp-preset-btn" data-comp-preset="sub-hex">HEX: C5 − 3A</button>
+                    <button type="button" class="comp-preset-btn" data-comp-preset="sub-neg">BIN: 0100 − 1010 (Neg)</button>
+                </div>
+            </div>
+
+            <!-- ================ COMPLEMENT DISPLAY MODE ================ -->
+            <div id="comp-display-panel" class="comp-panel-content">
+                <div class="comp-input-card">
+                    <div class="comp-input-row">
+                        <div class="comp-field">
+                            <label for="comp-base" class="comp-label">Number Base</label>
+                            <div class="select-wrapper">
+                                <select id="comp-base" class="base-selector">
+                                    <option value="2">Binary (Base 2)</option>
+                                    <option value="8">Octal (Base 8)</option>
+                                    <option value="10" selected>Decimal (Base 10)</option>
+                                    <option value="16">Hexadecimal (Base 16)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="comp-field flex-grow">
+                            <label for="comp-value" class="comp-label">Number Value</label>
+                            <input type="text" id="comp-value" class="value-input" placeholder="Enter number..." spellcheck="false" autocomplete="off">
+                        </div>
+                        <div class="comp-field comp-field-narrow">
+                            <label for="comp-digits" class="comp-label">Digit Width</label>
+                            <input type="number" id="comp-digits" min="1" value="8" class="comp-digit-input">
+                        </div>
+                        <div class="comp-field comp-field-auto">
+                            <label class="comp-label">&nbsp;</label>
+                            <label class="comp-auto-label">
+                                <input type="checkbox" id="comp-auto-digits" checked> Auto
+                            </label>
+                        </div>
+                    </div>
+                    <div class="error-message" id="comp-error" style="display: none;">Invalid input.</div>
+                    <div class="comp-action-row">
+                        <button type="button" id="comp-calc-btn" class="primary-btn comp-primary-btn">Compute Complements</button>
+                    </div>
+                </div>
+                <div id="comp-results-area" class="comp-results-area" style="display: none;"></div>
+            </div>
+
+            <!-- ================ SUBTRACTION MODE ================ -->
+            <div id="comp-sub-panel" class="comp-panel-content" style="display: none;">
+                <div class="comp-input-card">
+                    <div class="sub-input-grid">
+                        <!-- Minuend A -->
+                        <div class="sub-input-group">
+                            <div class="sub-group-label">Minuend (A)</div>
+                            <div class="sub-input-row">
+                                <div class="comp-field">
+                                    <label for="sub-base-a" class="comp-label">Base</label>
+                                    <div class="select-wrapper">
+                                        <select id="sub-base-a" class="base-selector">
+                                            <option value="2" selected>Binary (2)</option>
+                                            <option value="8">Octal (8)</option>
+                                            <option value="10">Decimal (10)</option>
+                                            <option value="16">Hex (16)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="comp-field flex-grow">
+                                    <label for="sub-val-a" class="comp-label">Value</label>
+                                    <input type="text" id="sub-val-a" class="value-input" placeholder="Enter A..." spellcheck="false" autocomplete="off">
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Minus Symbol -->
+                        <div class="sub-minus-symbol">−</div>
+                        <!-- Subtrahend B -->
+                        <div class="sub-input-group">
+                            <div class="sub-group-label">Subtrahend (B)</div>
+                            <div class="sub-input-row">
+                                <div class="comp-field">
+                                    <label for="sub-base-b" class="comp-label">Base</label>
+                                    <div class="select-wrapper">
+                                        <select id="sub-base-b" class="base-selector">
+                                            <option value="2" selected>Binary (2)</option>
+                                            <option value="8">Octal (8)</option>
+                                            <option value="10">Decimal (10)</option>
+                                            <option value="16">Hex (16)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="comp-field flex-grow">
+                                    <label for="sub-val-b" class="comp-label">Value</label>
+                                    <input type="text" id="sub-val-b" class="value-input" placeholder="Enter B..." spellcheck="false" autocomplete="off">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Digit Width Controls -->
+                    <div class="sub-digit-row">
+                        <div class="comp-field comp-field-narrow">
+                            <label for="sub-digits" class="comp-label">Digit Width</label>
+                            <input type="number" id="sub-digits" min="1" value="4" class="comp-digit-input">
+                        </div>
+                        <div class="comp-field comp-field-auto">
+                            <label class="comp-auto-label">
+                                <input type="checkbox" id="sub-auto-digits" checked> Auto
+                            </label>
+                        </div>
+                    </div>
+                    <div class="error-message" id="sub-error" style="display: none;">Invalid input.</div>
+                    <div class="comp-action-row">
+                        <button type="button" id="sub-calc-btn" class="primary-btn comp-primary-btn">Subtract Using Complements</button>
+                    </div>
+                </div>
+                <div id="sub-results-area" class="comp-results-area" style="display: none;"></div>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>

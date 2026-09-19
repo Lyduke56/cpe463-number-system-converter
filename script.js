@@ -1298,3 +1298,848 @@ if (document.getElementById('num-inputs')) {
     renderInputs(3);
     loadPreset('5'); // Default to Preset 5 which directly demonstrates (a+b-c)*d
 }
+
+// ==========================================================================
+// COMPLEMENT COMPUTATION ENGINE
+// Supports (r-1)'s (Diminished Radix) and r's (Radix) Complements
+// for Binary (base 2), Octal (base 8), Decimal (base 10), Hex (base 16)
+// ==========================================================================
+
+// Human-readable complement names
+const COMPLEMENT_NAMES = {
+    '2':  { diminished: "1's Complement", radix: "2's Complement" },
+    '8':  { diminished: "7's Complement", radix: "8's Complement" },
+    '10': { diminished: "9's Complement", radix: "10's Complement" },
+    '16': { diminished: "15's Complement", radix: "16's Complement" }
+};
+
+// Digit character to integer value
+function digitToInt(ch) {
+    const code = ch.toUpperCase().charCodeAt(0);
+    if (code >= 48 && code <= 57) return code - 48;       // '0'-'9'
+    if (code >= 65 && code <= 70) return code - 65 + 10;   // 'A'-'F'
+    return -1;
+}
+
+// Integer value (0-15) to digit character
+function intToDigit(val) {
+    if (val < 0 || val > 15) return '?';
+    return val.toString(16).toUpperCase();
+}
+
+// Pad a number string with leading zeros to reach numDigits
+function padToWidth(str, numDigits) {
+    while (str.length < numDigits) {
+        str = '0' + str;
+    }
+    return str;
+}
+
+/**
+ * Compute the (r-1)'s complement (Diminished Radix Complement)
+ * For each digit d_i, compute (base - 1) - d_i
+ * @returns {{ complement: string, steps: Array<{digit: string, maxDigit: string, result: string}> }}
+ */
+function computeDiminishedRadixComplement(valueStr, base, numDigits) {
+    const baseInt = parseInt(base, 10);
+    const maxDigitVal = baseInt - 1;
+    const maxDigitChar = intToDigit(maxDigitVal);
+    const padded = padToWidth(valueStr.toUpperCase(), numDigits);
+    const steps = [];
+    let complement = '';
+
+    for (let i = 0; i < padded.length; i++) {
+        const d = padded[i];
+        const dVal = digitToInt(d);
+        const compVal = maxDigitVal - dVal;
+        const compChar = intToDigit(compVal);
+        complement += compChar;
+        steps.push({
+            position: i,
+            digit: d,
+            maxDigit: maxDigitChar,
+            result: compChar,
+            explanation: `${maxDigitChar} − ${d} = ${compChar}`
+        });
+    }
+
+    return { complement, steps, padded };
+}
+
+/**
+ * Compute the r's complement (Radix Complement)
+ * = (r-1)'s complement + 1
+ * @returns {{ complement: string, diminishedComplement: string, diminishedSteps: Array, addOneSteps: Array }}
+ */
+function computeRadixComplement(valueStr, base, numDigits) {
+    const baseInt = parseInt(base, 10);
+    const dimResult = computeDiminishedRadixComplement(valueStr, base, numDigits);
+
+    // Add 1 to the diminished radix complement in the given base
+    const addResult = addOneInBase(dimResult.complement, baseInt);
+
+    return {
+        complement: addResult.result,
+        diminishedComplement: dimResult.complement,
+        diminishedSteps: dimResult.steps,
+        addOneSteps: addResult.steps,
+        padded: dimResult.padded,
+        overflow: addResult.overflow
+    };
+}
+
+/**
+ * Add 1 to a number string in a given base
+ * @returns {{ result: string, steps: Array, overflow: boolean }}
+ */
+function addOneInBase(valueStr, base) {
+    const digits = valueStr.split('');
+    const steps = [];
+    let carry = 1;
+
+    for (let i = digits.length - 1; i >= 0 && carry > 0; i--) {
+        const dVal = digitToInt(digits[i]);
+        const sum = dVal + carry;
+        const newDigit = sum % base;
+        carry = Math.floor(sum / base);
+        steps.push({
+            position: i,
+            originalDigit: digits[i],
+            addedValue: (i === digits.length - 1) ? '1' : 'carry',
+            sum: sum,
+            newDigit: intToDigit(newDigit),
+            carry: carry
+        });
+        digits[i] = intToDigit(newDigit);
+    }
+
+    return {
+        result: digits.join(''),
+        steps,
+        overflow: carry > 0
+    };
+}
+
+/**
+ * Add two number strings in a given base, digit by digit
+ * Both must be padded to the same width
+ * @returns {{ result: string, carry: number, steps: Array }}
+ */
+function addInBase(aStr, bStr, base, numDigits) {
+    const baseInt = parseInt(base, 10);
+    const a = padToWidth(aStr.toUpperCase(), numDigits);
+    const b = padToWidth(bStr.toUpperCase(), numDigits);
+    const steps = [];
+    let carry = 0;
+    let result = '';
+
+    for (let i = numDigits - 1; i >= 0; i--) {
+        const aVal = digitToInt(a[i]);
+        const bVal = digitToInt(b[i]);
+        const sum = aVal + bVal + carry;
+        const digit = sum % baseInt;
+        carry = Math.floor(sum / baseInt);
+        result = intToDigit(digit) + result;
+        steps.unshift({
+            position: i,
+            digitA: a[i],
+            digitB: b[i],
+            carryIn: (sum - aVal - bVal) > 0 ? 1 : ((aVal + bVal + (sum - aVal - bVal)) !== sum ? carry : (carry > 0 && i > 0 ? 0 : 0)),
+            sum: sum,
+            resultDigit: intToDigit(digit),
+            carryOut: carry
+        });
+    }
+
+    // Re-compute steps properly for carry tracking
+    const properSteps = [];
+    let properCarry = 0;
+    for (let i = numDigits - 1; i >= 0; i--) {
+        const aVal = digitToInt(a[i]);
+        const bVal = digitToInt(b[i]);
+        const sum = aVal + bVal + properCarry;
+        const digit = sum % baseInt;
+        const newCarry = Math.floor(sum / baseInt);
+        properSteps.unshift({
+            position: i,
+            digitA: a[i],
+            digitB: b[i],
+            carryIn: properCarry,
+            sum: sum,
+            resultDigit: intToDigit(digit),
+            carryOut: newCarry
+        });
+        properCarry = newCarry;
+    }
+
+    return { result, carry: properCarry, steps: properSteps, paddedA: a, paddedB: b };
+}
+
+/**
+ * Subtraction using (r-1)'s complement (Diminished Radix Complement)
+ * A - B using (r-1)'s complement method:
+ * 1. Compute (r-1)'s complement of B
+ * 2. Add A + complement(B)
+ * 3. If carry → end-around carry (add 1 to result), result is positive
+ * 4. If no carry → take (r-1)'s complement of sum, result is negative
+ */
+function subtractUsingDiminishedComplement(minuendStr, subtrahendStr, base, numDigits) {
+    const baseInt = parseInt(base, 10);
+    const compName = COMPLEMENT_NAMES[base] || { diminished: `${baseInt-1}'s Complement` };
+    const steps = [];
+
+    // Step 1: Pad both numbers
+    const paddedA = padToWidth(minuendStr.toUpperCase(), numDigits);
+    const paddedB = padToWidth(subtrahendStr.toUpperCase(), numDigits);
+    steps.push({
+        title: 'Pad Numbers',
+        detail: `Minuend A = ${paddedA}, Subtrahend B = ${paddedB} (${numDigits}-digit width in Base ${base})`
+    });
+
+    // Step 2: Compute (r-1)'s complement of B
+    const compB = computeDiminishedRadixComplement(subtrahendStr, base, numDigits);
+    steps.push({
+        title: `Compute ${compName.diminished} of B`,
+        detail: `${compName.diminished} of ${paddedB} = ${compB.complement}`,
+        substeps: compB.steps.map(s => s.explanation)
+    });
+
+    // Step 3: Add A + complement(B)
+    const addResult = addInBase(paddedA, compB.complement, base, numDigits);
+    steps.push({
+        title: `Add A + ${compName.diminished}(B)`,
+        detail: `${paddedA} + ${compB.complement} = ${addResult.carry ? '1' : ''}${addResult.result}`,
+        substeps: addResult.steps.map(s =>
+            `Position ${s.position}: ${s.digitA} + ${s.digitB}${s.carryIn ? ' + carry(' + s.carryIn + ')' : ''} = ${s.sum} → digit ${s.resultDigit}${s.carryOut ? ', carry ' + s.carryOut : ''}`)
+    });
+
+    let finalResult;
+    let isNegative;
+
+    if (addResult.carry > 0) {
+        // Step 4a: End-around carry — discard carry and add 1
+        const endAroundResult = addOneInBase(addResult.result, baseInt);
+        finalResult = endAroundResult.result;
+        isNegative = false;
+        steps.push({
+            title: 'End-Around Carry (Carry Detected)',
+            detail: `Carry exists → Remove carry and add 1 to result: ${addResult.result} + 1 = ${finalResult}`,
+            highlight: 'positive'
+        });
+    } else {
+        // Step 4b: No carry — take complement of sum, result is negative
+        const reComp = computeDiminishedRadixComplement(addResult.result, base, numDigits);
+        finalResult = reComp.complement;
+        isNegative = true;
+        steps.push({
+            title: 'No Carry (Result is Negative)',
+            detail: `No carry → Take ${compName.diminished} of sum: ${compName.diminished}(${addResult.result}) = ${finalResult}, prepend negative sign`,
+            highlight: 'negative'
+        });
+    }
+
+    steps.push({
+        title: 'Final Result',
+        detail: `${paddedA} − ${paddedB} = ${isNegative ? '−' : ''}${finalResult} (Base ${base})`,
+        highlight: isNegative ? 'negative' : 'positive'
+    });
+
+    // Convert final to decimal for cross-base display
+    const decVal = parseToDecimal(finalResult, base) * (isNegative ? -1 : 1);
+
+    return {
+        result: finalResult,
+        isNegative,
+        steps,
+        decimalValue: decVal,
+        method: compName.diminished
+    };
+}
+
+/**
+ * Subtraction using r's complement (Radix Complement)
+ * A - B using r's complement method:
+ * 1. Compute r's complement of B
+ * 2. Add A + complement(B)
+ * 3. If carry → discard carry, result is positive
+ * 4. If no carry → take r's complement of sum, result is negative
+ */
+function subtractUsingRadixComplement(minuendStr, subtrahendStr, base, numDigits) {
+    const baseInt = parseInt(base, 10);
+    const compName = COMPLEMENT_NAMES[base] || { radix: `${baseInt}'s Complement` };
+    const steps = [];
+
+    // Step 1: Pad both numbers
+    const paddedA = padToWidth(minuendStr.toUpperCase(), numDigits);
+    const paddedB = padToWidth(subtrahendStr.toUpperCase(), numDigits);
+    steps.push({
+        title: 'Pad Numbers',
+        detail: `Minuend A = ${paddedA}, Subtrahend B = ${paddedB} (${numDigits}-digit width in Base ${base})`
+    });
+
+    // Step 2: Compute r's complement of B
+    const compB = computeRadixComplement(subtrahendStr, base, numDigits);
+    steps.push({
+        title: `Compute ${compName.radix} of B`,
+        detail: `${compName.diminished || (baseInt-1) + "'s comp"} of ${paddedB} = ${compB.diminishedComplement}, then +1 = ${compB.complement}`,
+        substeps: [
+            ...compB.diminishedSteps.map(s => s.explanation),
+            `${compB.diminishedComplement} + 1 = ${compB.complement}`
+        ]
+    });
+
+    // Step 3: Add A + complement(B)
+    const addResult = addInBase(paddedA, compB.complement, base, numDigits);
+    steps.push({
+        title: `Add A + ${compName.radix}(B)`,
+        detail: `${paddedA} + ${compB.complement} = ${addResult.carry ? '1' : ''}${addResult.result}`,
+        substeps: addResult.steps.map(s =>
+            `Position ${s.position}: ${s.digitA} + ${s.digitB}${s.carryIn ? ' + carry(' + s.carryIn + ')' : ''} = ${s.sum} → digit ${s.resultDigit}${s.carryOut ? ', carry ' + s.carryOut : ''}`)
+    });
+
+    let finalResult;
+    let isNegative;
+
+    if (addResult.carry > 0) {
+        // Step 4a: Discard carry, result is positive
+        finalResult = addResult.result;
+        isNegative = false;
+        steps.push({
+            title: 'Discard Carry (Result is Positive)',
+            detail: `Carry exists → Discard carry. Result = ${finalResult}`,
+            highlight: 'positive'
+        });
+    } else {
+        // Step 4b: No carry — take r's complement of sum, result is negative
+        const reComp = computeRadixComplement(addResult.result, base, numDigits);
+        finalResult = reComp.complement;
+        isNegative = true;
+        steps.push({
+            title: 'No Carry (Result is Negative)',
+            detail: `No carry → Take ${compName.radix} of sum: ${compName.radix}(${addResult.result}) = ${finalResult}, prepend negative sign`,
+            highlight: 'negative'
+        });
+    }
+
+    steps.push({
+        title: 'Final Result',
+        detail: `${paddedA} − ${paddedB} = ${isNegative ? '−' : ''}${finalResult} (Base ${base})`,
+        highlight: isNegative ? 'negative' : 'positive'
+    });
+
+    const decVal = parseToDecimal(finalResult, base) * (isNegative ? -1 : 1);
+
+    return {
+        result: finalResult,
+        isNegative,
+        steps,
+        decimalValue: decVal,
+        method: compName.radix
+    };
+}
+
+
+// ==========================================================================
+// COMPLEMENT PANEL DOM & RENDERING
+// ==========================================================================
+
+// Complement Panel DOM References
+const compModeToggle = document.getElementById('comp-mode-toggle');
+const compDisplayPanel = document.getElementById('comp-display-panel');
+const compSubPanel = document.getElementById('comp-sub-panel');
+const compModeDisplayBtn = document.getElementById('comp-mode-display');
+const compModeSubBtn = document.getElementById('comp-mode-subtract');
+
+// Complement Display Mode Elements
+const compBase = document.getElementById('comp-base');
+const compValue = document.getElementById('comp-value');
+const compDigits = document.getElementById('comp-digits');
+const compAutoDigits = document.getElementById('comp-auto-digits');
+const compCalcBtn = document.getElementById('comp-calc-btn');
+const compResultsArea = document.getElementById('comp-results-area');
+const compError = document.getElementById('comp-error');
+
+// Subtraction Mode Elements
+const subBaseA = document.getElementById('sub-base-a');
+const subValA = document.getElementById('sub-val-a');
+const subBaseB = document.getElementById('sub-base-b');
+const subValB = document.getElementById('sub-val-b');
+const subDigits = document.getElementById('sub-digits');
+const subAutoDigits = document.getElementById('sub-auto-digits');
+const subCalcBtn = document.getElementById('sub-calc-btn');
+const subResultsArea = document.getElementById('sub-results-area');
+const subError = document.getElementById('sub-error');
+
+// Complement Preset Buttons
+const compPresetBtns = document.querySelectorAll('.comp-preset-btn');
+
+// ---- Mode Toggle ----
+function switchCompMode(mode) {
+    if (mode === 'display') {
+        if (compDisplayPanel) compDisplayPanel.style.display = 'block';
+        if (compSubPanel) compSubPanel.style.display = 'none';
+        if (compModeDisplayBtn) compModeDisplayBtn.classList.add('active');
+        if (compModeSubBtn) compModeSubBtn.classList.remove('active');
+    } else {
+        if (compDisplayPanel) compDisplayPanel.style.display = 'none';
+        if (compSubPanel) compSubPanel.style.display = 'block';
+        if (compModeDisplayBtn) compModeDisplayBtn.classList.remove('active');
+        if (compModeSubBtn) compModeSubBtn.classList.add('active');
+    }
+}
+
+if (compModeDisplayBtn) {
+    compModeDisplayBtn.addEventListener('click', () => switchCompMode('display'));
+}
+if (compModeSubBtn) {
+    compModeSubBtn.addEventListener('click', () => switchCompMode('subtract'));
+}
+
+// ---- Auto Digit Width Toggle ----
+function updateDigitWidthState(autoCheckbox, digitInput) {
+    if (!autoCheckbox || !digitInput) return;
+    digitInput.disabled = autoCheckbox.checked;
+    if (autoCheckbox.checked) {
+        digitInput.style.opacity = '0.4';
+    } else {
+        digitInput.style.opacity = '1';
+    }
+}
+
+if (compAutoDigits) {
+    compAutoDigits.addEventListener('change', () => updateDigitWidthState(compAutoDigits, compDigits));
+    updateDigitWidthState(compAutoDigits, compDigits);
+}
+
+if (subAutoDigits) {
+    subAutoDigits.addEventListener('change', () => updateDigitWidthState(subAutoDigits, subDigits));
+    updateDigitWidthState(subAutoDigits, subDigits);
+}
+
+// ---- Determine Digit Width ----
+function getDigitWidth(valueStr, autoCheckbox, digitInput, base) {
+    if (autoCheckbox && autoCheckbox.checked) {
+        // Auto: use the length of the input, minimum 1
+        const cleanVal = valueStr.replace(/^-/, '');
+        return Math.max(cleanVal.length, 1);
+    }
+    const manual = parseInt(digitInput.value, 10);
+    return isNaN(manual) || manual < 1 ? 1 : manual;
+}
+
+// ---- Complement Display Calculation ----
+function processComplementDisplay() {
+    if (!compBase || !compValue || !compResultsArea) return;
+
+    // Clear previous
+    compResultsArea.innerHTML = '';
+    if (compError) compError.style.display = 'none';
+    compValue.classList.remove('error');
+
+    const base = compBase.value;
+    const val = compValue.value.trim().replace(/^-/, ''); // Strip negative sign
+
+    if (!val) {
+        compValue.classList.add('error');
+        if (compError) {
+            compError.innerText = 'Please enter a value.';
+            compError.style.display = 'block';
+        }
+        return;
+    }
+
+    if (!isValidNumber(val, base)) {
+        compValue.classList.add('error');
+        if (compError) {
+            compError.innerText = `Invalid digits for Base ${base}. Allowed: ${getAllowedChars(base)}`;
+            compError.style.display = 'block';
+        }
+        return;
+    }
+
+    const numDigits = getDigitWidth(val, compAutoDigits, compDigits, base);
+    if (val.length > numDigits) {
+        compValue.classList.add('error');
+        if (compError) {
+            compError.innerText = `Input has ${val.length} digits but digit width is set to ${numDigits}. Increase digit width or shorten input.`;
+            compError.style.display = 'block';
+        }
+        return;
+    }
+
+    const baseInt = parseInt(base, 10);
+    const names = COMPLEMENT_NAMES[base];
+    const padded = padToWidth(val.toUpperCase(), numDigits);
+
+    // Compute both complements
+    const dimComp = computeDiminishedRadixComplement(val, base, numDigits);
+    const radComp = computeRadixComplement(val, base, numDigits);
+
+    // Decimal values
+    const originalDec = parseToDecimal(val, base);
+    const dimCompDec = parseToDecimal(dimComp.complement, base);
+    const radCompDec = parseToDecimal(radComp.complement, base);
+
+    compResultsArea.innerHTML = `
+        <div class="comp-result-header">
+            <div class="comp-original-display">
+                <span class="comp-orig-label">Original Number:</span>
+                <span class="comp-orig-value">${padded}<sub>${base}</sub></span>
+                <span class="comp-orig-dec">= ${originalDec}<sub>10</sub></span>
+            </div>
+            <div class="comp-info-badges">
+                <span class="comp-info-badge">${numDigits}-digit</span>
+                <span class="comp-info-badge">Base ${base}</span>
+            </div>
+        </div>
+
+        <div class="comp-results-grid">
+            <!-- (r-1)'s Complement Card -->
+            <div class="comp-card diminished">
+                <div class="comp-card-header">
+                    <span class="comp-card-title">${names.diminished}</span>
+                    <span class="comp-card-subtitle">Diminished Radix (r−1)'s</span>
+                </div>
+                <div class="comp-card-value">${dimComp.complement}</div>
+                <div class="comp-card-dec">= ${dimCompDec}<sub>10</sub></div>
+                <div class="comp-card-method">
+                    <div class="comp-method-title">Method: Subtract each digit from ${intToDigit(baseInt - 1)}</div>
+                    <div class="comp-digit-steps">
+                        ${dimComp.steps.map(s => `
+                            <span class="comp-digit-step">${s.explanation}</span>
+                        `).join('')}
+                    </div>
+                </div>
+                <div class="comp-card-conversions">
+                    <div class="comp-conv-title">All Base Conversions</div>
+                    <div class="comp-conv-grid">
+                        <div class="comp-conv-cell"><span class="comp-conv-base">BIN</span><span class="comp-conv-val">${formatBase(dimCompDec, 2, 0)}</span></div>
+                        <div class="comp-conv-cell"><span class="comp-conv-base">OCT</span><span class="comp-conv-val">${formatBase(dimCompDec, 8, 0)}</span></div>
+                        <div class="comp-conv-cell"><span class="comp-conv-base">DEC</span><span class="comp-conv-val">${dimCompDec}</span></div>
+                        <div class="comp-conv-cell"><span class="comp-conv-base">HEX</span><span class="comp-conv-val">${formatBase(dimCompDec, 16, 0)}</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- r's Complement Card -->
+            <div class="comp-card radix">
+                <div class="comp-card-header">
+                    <span class="comp-card-title">${names.radix}</span>
+                    <span class="comp-card-subtitle">Radix (r)'s</span>
+                </div>
+                <div class="comp-card-value">${radComp.complement}</div>
+                <div class="comp-card-dec">= ${radCompDec}<sub>10</sub></div>
+                <div class="comp-card-method">
+                    <div class="comp-method-title">Method: ${names.diminished} + 1</div>
+                    <div class="comp-digit-steps">
+                        ${radComp.diminishedSteps.map(s => `
+                            <span class="comp-digit-step">${s.explanation}</span>
+                        `).join('')}
+                        <span class="comp-digit-step add-one">${radComp.diminishedComplement} + 1 = ${radComp.complement}</span>
+                    </div>
+                </div>
+                <div class="comp-card-conversions">
+                    <div class="comp-conv-title">All Base Conversions</div>
+                    <div class="comp-conv-grid">
+                        <div class="comp-conv-cell"><span class="comp-conv-base">BIN</span><span class="comp-conv-val">${formatBase(radCompDec, 2, 0)}</span></div>
+                        <div class="comp-conv-cell"><span class="comp-conv-base">OCT</span><span class="comp-conv-val">${formatBase(radCompDec, 8, 0)}</span></div>
+                        <div class="comp-conv-cell"><span class="comp-conv-base">DEC</span><span class="comp-conv-val">${radCompDec}</span></div>
+                        <div class="comp-conv-cell"><span class="comp-conv-base">HEX</span><span class="comp-conv-val">${formatBase(radCompDec, 16, 0)}</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    compResultsArea.style.display = 'block';
+}
+
+if (compCalcBtn) {
+    compCalcBtn.addEventListener('click', processComplementDisplay);
+}
+
+// ---- Subtraction via Complements Calculation ----
+function processSubtraction() {
+    if (!subBaseA || !subValA || !subBaseB || !subValB || !subResultsArea) return;
+
+    // Clear
+    subResultsArea.innerHTML = '';
+    if (subError) subError.style.display = 'none';
+    subValA.classList.remove('error');
+    subValB.classList.remove('error');
+
+    const baseA = subBaseA.value;
+    const baseB = subBaseB.value;
+    const valA = subValA.value.trim().replace(/^-/, '');
+    const valB = subValB.value.trim().replace(/^-/, '');
+
+    // Validate A
+    if (!valA) {
+        subValA.classList.add('error');
+        if (subError) { subError.innerText = 'Minuend (A) cannot be empty.'; subError.style.display = 'block'; }
+        return;
+    }
+    if (!isValidNumber(valA, baseA)) {
+        subValA.classList.add('error');
+        if (subError) { subError.innerText = `Minuend: Invalid digits for Base ${baseA}. Allowed: ${getAllowedChars(baseA)}`; subError.style.display = 'block'; }
+        return;
+    }
+
+    // Validate B
+    if (!valB) {
+        subValB.classList.add('error');
+        if (subError) { subError.innerText = 'Subtrahend (B) cannot be empty.'; subError.style.display = 'block'; }
+        return;
+    }
+    if (!isValidNumber(valB, baseB)) {
+        subValB.classList.add('error');
+        if (subError) { subError.innerText = `Subtrahend: Invalid digits for Base ${baseB}. Allowed: ${getAllowedChars(baseB)}`; subError.style.display = 'block'; }
+        return;
+    }
+
+    // Convert both to the same base for complement subtraction
+    // We'll use the base of the Minuend (A) as the working base
+    const workingBase = baseA;
+    const workingBaseInt = parseInt(workingBase, 10);
+
+    // Convert B to working base if different
+    let workingValA = valA.toUpperCase();
+    let workingValB;
+    if (baseB !== workingBase) {
+        const decB = parseToDecimal(valB, baseB);
+        workingValB = formatBase(decB, workingBaseInt, 0).toUpperCase();
+    } else {
+        workingValB = valB.toUpperCase();
+    }
+
+    // Determine digit width
+    const numDigits = getDigitWidth(
+        workingValA.length >= workingValB.length ? workingValA : workingValB,
+        subAutoDigits, subDigits, workingBase
+    );
+
+    // Ensure both fit in digit width
+    const maxLen = Math.max(workingValA.length, workingValB.length);
+    const effectiveDigits = Math.max(numDigits, maxLen);
+
+    if (subAutoDigits && !subAutoDigits.checked && maxLen > numDigits) {
+        if (subError) {
+            subError.innerText = `Input exceeds specified ${numDigits}-digit width. Increase digit width or shorten inputs.`;
+            subError.style.display = 'block';
+        }
+        return;
+    }
+
+    const names = COMPLEMENT_NAMES[workingBase];
+
+    // Compute both methods
+    const dimResult = subtractUsingDiminishedComplement(workingValA, workingValB, workingBase, effectiveDigits);
+    const radResult = subtractUsingRadixComplement(workingValA, workingValB, workingBase, effectiveDigits);
+
+    // Actual decimal answer for verification
+    const decA = parseToDecimal(workingValA, workingBase);
+    const decB = parseToDecimal(workingValB, workingBase);
+    const actualDec = decA - decB;
+
+    // Build results HTML
+    subResultsArea.innerHTML = `
+        <div class="sub-result-header">
+            <div class="sub-expression">
+                <span class="sub-operand">${padToWidth(workingValA, effectiveDigits)}<sub>${workingBase}</sub></span>
+                <span class="sub-operator">−</span>
+                <span class="sub-operand">${padToWidth(workingValB, effectiveDigits)}<sub>${workingBase}</sub></span>
+                <span class="sub-equals">=</span>
+                <span class="sub-answer ${actualDec < 0 ? 'negative' : 'positive'}">${actualDec < 0 ? '−' : ''}${formatBase(Math.abs(actualDec), workingBaseInt, 0)}<sub>${workingBase}</sub></span>
+                <span class="sub-dec-answer">(${actualDec}<sub>10</sub>)</span>
+            </div>
+            ${baseB !== workingBase ? `<div class="sub-base-note">Note: Subtrahend B converted from Base ${baseB} to Base ${workingBase}: ${valB}<sub>${baseB}</sub> → ${workingValB}<sub>${workingBase}</sub></div>` : ''}
+        </div>
+
+        <div class="sub-methods-grid">
+            <!-- (r-1)'s Complement Method -->
+            <div class="sub-method-card diminished">
+                <div class="sub-method-header">
+                    <span class="sub-method-title">${names.diminished} Subtraction</span>
+                    <span class="sub-method-tag">Method 1: End-Around Carry</span>
+                </div>
+                <div class="sub-steps-list">
+                    ${dimResult.steps.map((step, idx) => `
+                        <div class="sub-step ${step.highlight || ''}">
+                            <div class="sub-step-header">
+                                <span class="sub-step-num">Step ${idx + 1}</span>
+                                <span class="sub-step-title">${step.title}</span>
+                            </div>
+                            <div class="sub-step-detail">${step.detail}</div>
+                            ${step.substeps ? `
+                                <div class="sub-substeps">
+                                    ${step.substeps.map(ss => `<div class="sub-substep">${ss}</div>`).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="sub-method-result ${dimResult.isNegative ? 'negative' : 'positive'}">
+                    <span class="sub-result-label">Result:</span>
+                    <span class="sub-result-value">${dimResult.isNegative ? '−' : ''}${dimResult.result}<sub>${workingBase}</sub></span>
+                    <span class="sub-result-dec">(${dimResult.decimalValue}<sub>10</sub>)</span>
+                </div>
+            </div>
+
+            <!-- r's Complement Method -->
+            <div class="sub-method-card radix">
+                <div class="sub-method-header">
+                    <span class="sub-method-title">${names.radix} Subtraction</span>
+                    <span class="sub-method-tag">Method 2: Discard Carry</span>
+                </div>
+                <div class="sub-steps-list">
+                    ${radResult.steps.map((step, idx) => `
+                        <div class="sub-step ${step.highlight || ''}">
+                            <div class="sub-step-header">
+                                <span class="sub-step-num">Step ${idx + 1}</span>
+                                <span class="sub-step-title">${step.title}</span>
+                            </div>
+                            <div class="sub-step-detail">${step.detail}</div>
+                            ${step.substeps ? `
+                                <div class="sub-substeps">
+                                    ${step.substeps.map(ss => `<div class="sub-substep">${ss}</div>`).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="sub-method-result ${radResult.isNegative ? 'negative' : 'positive'}">
+                    <span class="sub-result-label">Result:</span>
+                    <span class="sub-result-value">${radResult.isNegative ? '−' : ''}${radResult.result}<sub>${workingBase}</sub></span>
+                    <span class="sub-result-dec">(${radResult.decimalValue}<sub>10</sub>)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cross-base final results -->
+        <div class="sub-final-conversions">
+            <div class="card-badge">Final Result — All Base Conversions</div>
+            <div class="final-results-grid">
+                <div class="result-tile">
+                    <div class="tile-header">
+                        <span class="tile-base">Binary</span>
+                        <span class="tile-tag">Base 2</span>
+                    </div>
+                    <div class="tile-value">${actualDec < 0 ? '−' : ''}${formatBase(Math.abs(actualDec), 2, 0)}</div>
+                </div>
+                <div class="result-tile">
+                    <div class="tile-header">
+                        <span class="tile-base">Octal</span>
+                        <span class="tile-tag">Base 8</span>
+                    </div>
+                    <div class="tile-value">${actualDec < 0 ? '−' : ''}${formatBase(Math.abs(actualDec), 8, 0)}</div>
+                </div>
+                <div class="result-tile">
+                    <div class="tile-header">
+                        <span class="tile-base">Decimal</span>
+                        <span class="tile-tag">Base 10</span>
+                    </div>
+                    <div class="tile-value">${actualDec}</div>
+                </div>
+                <div class="result-tile">
+                    <div class="tile-header">
+                        <span class="tile-base">Hexadecimal</span>
+                        <span class="tile-tag">Base 16</span>
+                    </div>
+                    <div class="tile-value">${actualDec < 0 ? '−' : ''}${formatBase(Math.abs(actualDec), 16, 0)}</div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    subResultsArea.style.display = 'block';
+    subResultsArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+if (subCalcBtn) {
+    subCalcBtn.addEventListener('click', processSubtraction);
+}
+
+// ---- Complement Presets ----
+const COMP_PRESETS = {
+    'bin4': {
+        mode: 'display',
+        base: '2', value: '1010', digits: 4, auto: false
+    },
+    'bin8': {
+        mode: 'display',
+        base: '2', value: '11001010', digits: 8, auto: false
+    },
+    'oct3': {
+        mode: 'display',
+        base: '8', value: '325', digits: 3, auto: true
+    },
+    'dec4': {
+        mode: 'display',
+        base: '10', value: '4867', digits: 4, auto: true
+    },
+    'hex3': {
+        mode: 'display',
+        base: '16', value: 'A3F', digits: 3, auto: true
+    },
+    'sub-bin': {
+        mode: 'subtract',
+        baseA: '2', valA: '1010', baseB: '2', valB: '0111', digits: 4, auto: false
+    },
+    'sub-oct': {
+        mode: 'subtract',
+        baseA: '8', valA: '52', baseB: '8', valB: '37', digits: 2, auto: true
+    },
+    'sub-dec': {
+        mode: 'subtract',
+        baseA: '10', valA: '305', baseB: '10', valB: '148', digits: 3, auto: true
+    },
+    'sub-hex': {
+        mode: 'subtract',
+        baseA: '16', valA: 'C5', baseB: '16', valB: '3A', digits: 2, auto: true
+    },
+    'sub-neg': {
+        mode: 'subtract',
+        baseA: '2', valA: '0100', baseB: '2', valB: '1010', digits: 4, auto: false
+    }
+};
+
+function loadCompPreset(presetKey) {
+    const preset = COMP_PRESETS[presetKey];
+    if (!preset) return;
+
+    if (preset.mode === 'display') {
+        switchCompMode('display');
+        if (compBase) compBase.value = preset.base;
+        if (compValue) compValue.value = preset.value;
+        if (compAutoDigits) {
+            compAutoDigits.checked = preset.auto;
+            updateDigitWidthState(compAutoDigits, compDigits);
+        }
+        if (!preset.auto && compDigits) compDigits.value = preset.digits;
+        processComplementDisplay();
+    } else {
+        switchCompMode('subtract');
+        if (subBaseA) subBaseA.value = preset.baseA;
+        if (subValA) subValA.value = preset.valA;
+        if (subBaseB) subBaseB.value = preset.baseB;
+        if (subValB) subValB.value = preset.valB;
+        if (subAutoDigits) {
+            subAutoDigits.checked = preset.auto;
+            updateDigitWidthState(subAutoDigits, subDigits);
+        }
+        if (!preset.auto && subDigits) subDigits.value = preset.digits;
+        processSubtraction();
+    }
+}
+
+compPresetBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const presetId = btn.dataset.compPreset;
+        if (presetId) loadCompPreset(presetId);
+    });
+});
+
+// Initialize complement panel (default to display mode)
+if (compDisplayPanel) {
+    switchCompMode('display');
+}

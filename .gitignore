@@ -1,0 +1,50 @@
+# =========================
+# Previous Builds / Submissions
+# =========================
+previous-builds/
+
+# =========================
+# OS Generated Files
+# =========================
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.lnk
+
+# =========================
+# Editor / IDE Files
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# =========================
+# Node / Dependencies
+# =========================
+node_modules/
+package-lock.json
+yarn.lock
+
+# =========================
+# Build Output
+# =========================
+dist/
+build/
+out/
+
+# =========================
+# Logs
+# =========================
+*.log
+npm-debug.log*
+
+# =========================
+# Environment Variables
+# =========================
+.env
+.env.local
+.env.*.local

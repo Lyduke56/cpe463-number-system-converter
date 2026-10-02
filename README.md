@@ -79,19 +79,23 @@ Unlike basic calculators that evaluate operations sequentially from left to righ
 ## 3. Project File Structure
 
 ```text
-cpe463_act1/
-├── index.html      # Accessible HTML5 structure and layout
-├── style.css       # Responsive styling, color tokens, and layout components
-├── script.js       # Core conversion, parsing, AST evaluation, and UI logic
-└── README.md       # Project documentation and user manual
+cpe463-number-system-converter/
+├── index.html              # Accessible HTML5 structure and layout
+├── style.css               # Responsive styling, color tokens, and layout components
+├── script.js               # Core conversion, parsing, AST evaluation, and UI logic
+├── flowchart.html          # Interactive visual flowchart viewer
+├── FLOWCHART.md            # ANSI/ISO 5807 flowchart diagrams & system flowcharts
+├── PSEUDOCODE.md           # Formal algorithmic pseudocode specifications
+├── SYSTEM_REQUIREMENTS.md  # Software System Requirements Specification (SRS)
+└── README.md               # Project documentation and user manual
 ```
 
 ### Component Details
-- **[index.html](file:///c:/Users/L64X17W17/cpe463_act1/index.html):**
+- **[`index.html`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/index.html):**
   Defines semantic containers including the control panel, quick preset buttons, expression input bar, virtual keypad, dynamic input rows container, global error banner, step-by-step accordion breakdown, and final multi-base output tiles.
-- **[style.css](file:///c:/Users/L64X17W17/cpe463_act1/style.css):**
+- **[`style.css`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/style.css):**
   Provides a clean, modern design system built with CSS custom properties (variables), responsive flexbox and grid structures, dark/light contrast elements, state indicators (success, error), and subtle transitions.
-- **[script.js](file:///c:/Users/L64X17W17/cpe463_act1/script.js):**
+- **[`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js):**
   Houses the complete client-side architecture:
   - Base conversion utilities (`parseToDecimal`, `formatBase`, `isValidNumber`)
   - Dynamic DOM rendering and event listeners
@@ -99,6 +103,8 @@ cpe463_act1/
   - Dijkstra's Shunting-yard algorithm implementation
   - Abstract Syntax Tree (AST) builder and recursive bottom-up step reducer
   - Preset loader and error banner dispatcher
+- **[`SYSTEM_REQUIREMENTS.md`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/SYSTEM_REQUIREMENTS.md):**
+  Formal IEEE 830 / ISO/IEC/IEEE 29148 Software System Requirements Specification outlining functional, non-functional, interface, and hardware/software environment constraints.
 
 ---
 

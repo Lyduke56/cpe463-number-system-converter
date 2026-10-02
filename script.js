@@ -2275,7 +2275,7 @@ function updateBCDInputPreview(inputEl, previewEl) {
     }
 
     if (!/^[0-9]+$/.test(rawVal)) {
-        previewEl.innerHTML = '<span style="color: var(--error); font-size: 0.75rem;">⚠ Contains non-decimal digits</span>';
+        previewEl.innerHTML = '<span style="color: var(--error); font-size: 0.75rem;">Invalid: Contains non-decimal digits</span>';
         return;
     }
 
@@ -2329,8 +2329,8 @@ function switchBcdMode(mode) {
 
     if (bcdCalcBtn) {
         bcdCalcBtn.innerHTML = isAdd
-            ? '<span class="btn-icon">⚡</span> Execute BCD Addition'
-            : '<span class="btn-icon">⚡</span> Execute BCD Subtraction (9\'s & 10\'s Complements)';
+            ? 'Execute BCD Addition'
+            : 'Execute BCD Subtraction (9\'s & 10\'s Complements)';
     }
 
     if (bcdResultsArea) {
@@ -2663,7 +2663,7 @@ function copyToClipboard(text, btnElement, successMsg = 'Copied!') {
     if (!navigator.clipboard) return;
     navigator.clipboard.writeText(text).then(() => {
         const originalText = btnElement.innerHTML;
-        btnElement.innerHTML = `✓ ${successMsg}`;
+        btnElement.innerHTML = successMsg;
         btnElement.style.borderColor = 'var(--accent-emerald)';
         btnElement.style.color = 'var(--accent-emerald)';
         setTimeout(() => {
@@ -2819,8 +2819,8 @@ function renderBCDAdditionResult(res, rawA, rawB) {
                 </div>
             </div>
             <div class="bcd-hero-actions">
-                <button type="button" class="bcd-copy-btn" id="copy-bcd-btn">📋 Copy BCD (${bcdSpaced})</button>
-                <button type="button" class="bcd-copy-btn" id="copy-dec-btn">📋 Copy Decimal (${res.finalDigits})</button>
+                <button type="button" class="bcd-copy-btn" id="copy-bcd-btn">Copy BCD (${bcdSpaced})</button>
+                <button type="button" class="bcd-copy-btn" id="copy-dec-btn">Copy Decimal (${res.finalDigits})</button>
             </div>
         </div>
 
@@ -2887,7 +2887,7 @@ function renderBCDSubtractionResult(res9, res10, rawA, rawB) {
     const verdict9Html = res9.isPositive
         ? `
         <div class="bcd-carry-verdict positive">
-            <div class="bcd-verdict-title">✓ End Carry Generated = 1 (Positive Result: A ≥ B)</div>
+            <div class="bcd-verdict-title">End Carry Generated = 1 (Positive Result: A ≥ B)</div>
             <p class="bcd-verdict-desc">
                 In 9's complement arithmetic, an end carry of <strong>1</strong> indicates that the minuend is greater than or equal to the subtrahend.
                 Apply the <strong>End-Around Carry Rule</strong>: Add <strong>1</strong> to the least significant digit of the BCD sum via BCD addition.
@@ -2899,7 +2899,7 @@ function renderBCDSubtractionResult(res9, res10, rawA, rawB) {
         `
         : `
         <div class="bcd-carry-verdict negative">
-            <div class="bcd-verdict-title">⚠ No End Carry Generated = 0 (Negative Result: A &lt; B)</div>
+            <div class="bcd-verdict-title">No End Carry Generated = 0 (Negative Result: A &lt; B)</div>
             <p class="bcd-verdict-desc">
                 An end carry of <strong>0</strong> indicates that the minuend is less than the subtrahend. The intermediate BCD sum <strong>${res9.additionResult.sumDigitsOnly}</strong> is in 9's complement form.
                 <strong>Re-complementing:</strong> Take the 9's complement of each digit of the sum to obtain the true magnitude, then attach a negative sign.
@@ -2914,7 +2914,7 @@ function renderBCDSubtractionResult(res9, res10, rawA, rawB) {
     const verdict10Html = res10.isPositive
         ? `
         <div class="bcd-carry-verdict positive">
-            <div class="bcd-verdict-title">✓ End Carry Generated = 1 (Positive Result: A ≥ B)</div>
+            <div class="bcd-verdict-title">End Carry Generated = 1 (Positive Result: A ≥ B)</div>
             <p class="bcd-verdict-desc">
                 In 10's complement arithmetic, an end carry of <strong>1</strong> indicates a positive result.
                 <strong>Discard the End Carry:</strong> The remaining digits directly represent the true positive difference.
@@ -2926,7 +2926,7 @@ function renderBCDSubtractionResult(res9, res10, rawA, rawB) {
         `
         : `
         <div class="bcd-carry-verdict negative">
-            <div class="bcd-verdict-title">⚠ No End Carry Generated = 0 (Negative Result: A &lt; B)</div>
+            <div class="bcd-verdict-title">No End Carry Generated = 0 (Negative Result: A &lt; B)</div>
             <p class="bcd-verdict-desc">
                 An end carry of <strong>0</strong> indicates that the result is negative and in 10's complement form.
                 <strong>Re-complementing:</strong> Take the 10's complement of the intermediate sum <strong>${res10.additionResult.sumDigitsOnly}</strong> (9's complement + 1) to obtain the true magnitude, then attach a negative sign.
@@ -2961,8 +2961,8 @@ function renderBCDSubtractionResult(res9, res10, rawA, rawB) {
                 </div>
             </div>
             <div class="bcd-hero-actions">
-                <button type="button" class="bcd-copy-btn" id="copy-bcd-sub-btn">📋 Copy BCD (${formattedBcd9})</button>
-                <button type="button" class="bcd-copy-btn" id="copy-dec-sub-btn">📋 Copy Decimal (${signedDecDisplay})</button>
+                <button type="button" class="bcd-copy-btn" id="copy-bcd-sub-btn">Copy BCD (${formattedBcd9})</button>
+                <button type="button" class="bcd-copy-btn" id="copy-dec-sub-btn">Copy Decimal (${signedDecDisplay})</button>
             </div>
         </div>
 
@@ -3072,13 +3072,13 @@ function renderBCDSubtractionResult(res9, res10, rawA, rawB) {
             <span class="section-label">Comparative Method Analysis (9's vs 10's Complement in BCD)</span>
             <div class="bcd-takeaways-grid">
                 <div class="bcd-takeaway-item">
-                    <h4>🔄 End-Around Carry vs Discard Carry</h4>
+                    <h4>End-Around Carry vs. Discard Carry</h4>
                     <p>
                         In 9's complement (diminished radix), an end carry of 1 must be cycled around and added back (+1). In 10's complement (radix complement), an end carry of 1 is simply discarded because the +1 was already incorporated during complement formation.
                     </p>
                 </div>
                 <div class="bcd-takeaway-item">
-                    <h4>⚖ Negative Result Handling</h4>
+                    <h4>Negative Result Handling</h4>
                     <p>
                         When no end carry is generated (carry = 0), both methods yield an answer in complemented form. The 9's complement result is re-complemented by taking (9 − digit), whereas the 10's complement result is re-complemented by taking (10's complement) of the sum.
                     </p>

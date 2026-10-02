@@ -18,21 +18,53 @@
         <!-- Main Navigation Tabs -->
         <nav class="main-tabs" role="tablist" aria-label="Main Navigation">
             <button type="button" class="tab-btn active" role="tab" id="tab-btn-converter" aria-selected="true" aria-controls="tab-panel-converter" data-tab="converter">
-                <span class="tab-icon">🔢</span>
+                <span class="tab-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+                        <line x1="8" y1="6" x2="16" y2="6"></line>
+                        <line x1="16" y1="14" x2="16" y2="18"></line>
+                        <path d="M8 10h.01"></path>
+                        <path d="M12 10h.01"></path>
+                        <path d="M16 10h.01"></path>
+                        <path d="M8 14h.01"></path>
+                        <path d="M12 14h.01"></path>
+                        <path d="M8 18h.01"></path>
+                        <path d="M12 18h.01"></path>
+                    </svg>
+                </span>
                 <div class="tab-text-group">
                     <span class="tab-title">Converter &amp; Calculator</span>
                     <span class="tab-sub">Multi-Base Arithmetic</span>
                 </div>
             </button>
             <button type="button" class="tab-btn" role="tab" id="tab-btn-complements" aria-selected="false" aria-controls="tab-panel-complements" data-tab="complements">
-                <span class="tab-icon">🔄</span>
+                <span class="tab-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                </span>
                 <div class="tab-text-group">
                     <span class="tab-title">Complements &amp; Subtraction</span>
                     <span class="tab-sub">(r−1)'s &amp; r's Bases</span>
                 </div>
             </button>
             <button type="button" class="tab-btn" role="tab" id="tab-btn-bcd" aria-selected="false" aria-controls="tab-panel-bcd" data-tab="bcd">
-                <span class="tab-icon">⚡</span>
+                <span class="tab-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                        <rect x="9" y="9" width="6" height="6"></rect>
+                        <line x1="9" y1="1" x2="9" y2="4"></line>
+                        <line x1="15" y1="1" x2="15" y2="4"></line>
+                        <line x1="9" y1="20" x2="9" y2="23"></line>
+                        <line x1="15" y1="20" x2="15" y2="23"></line>
+                        <line x1="20" y1="9" x2="23" y2="9"></line>
+                        <line x1="20" y1="14" x2="23" y2="14"></line>
+                        <line x1="1" y1="9" x2="4" y2="9"></line>
+                        <line x1="1" y1="14" x2="4" y2="14"></line>
+                    </svg>
+                </span>
                 <div class="tab-text-group">
                     <span class="tab-title">BCD Arithmetic</span>
                     <span class="tab-sub">8421 +6 &amp; 9's/10's Comp</span>
@@ -125,7 +157,13 @@
 
         <!-- error banner -->
         <div class="error-banner" id="global-error-banner" style="display: none;" role="alert">
-            <div class="error-banner-icon">⚠️</div>
+            <div class="error-banner-icon" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+            </div>
             <div class="error-banner-content">
                 <h4 class="error-banner-title" id="error-banner-title">Arithmetic Error</h4>
                 <p class="error-banner-desc" id="error-banner-desc">An error occurred during evaluation.</p>
@@ -380,10 +418,10 @@
                     <!-- BCD Operation Mode Toggle -->
                     <div class="bcd-mode-toggle" id="bcd-mode-toggle">
                         <button type="button" class="bcd-mode-btn active" id="bcd-mode-add" data-bcd-mode="add">
-                            <span class="mode-icon">➕</span> BCD Addition (+6 Rule)
+                            <span class="mode-icon">+</span> BCD Addition (+6 Rule)
                         </button>
                         <button type="button" class="bcd-mode-btn" id="bcd-mode-sub" data-bcd-mode="sub">
-                            <span class="mode-icon">➖</span> BCD Subtraction (Complements)
+                            <span class="mode-icon">&minus;</span> BCD Subtraction (Complements)
                         </button>
                     </div>
                 </div>
@@ -481,7 +519,7 @@
                     <!-- Primary Action Button -->
                     <div class="bcd-action-row">
                         <button type="button" id="bcd-calc-btn" class="primary-btn bcd-primary-btn">
-                            <span class="btn-icon">⚡</span> Execute BCD Addition
+                            Execute BCD Addition
                         </button>
                     </div>
                 </div>

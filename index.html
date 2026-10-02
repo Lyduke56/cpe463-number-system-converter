@@ -15,8 +15,38 @@
             <p class="subtitle">Multi-Base Input Converter with Unified Arithmetic Engine (Base 2, 8, 10, 16)</p>
         </header>
 
-        <!-- top controls -->
-        <div class="controls-wrapper">
+        <!-- Main Navigation Tabs -->
+        <nav class="main-tabs" role="tablist" aria-label="Main Navigation">
+            <button type="button" class="tab-btn active" role="tab" id="tab-btn-converter" aria-selected="true" aria-controls="tab-panel-converter" data-tab="converter">
+                <span class="tab-icon">🔢</span>
+                <div class="tab-text-group">
+                    <span class="tab-title">Converter &amp; Calculator</span>
+                    <span class="tab-sub">Multi-Base Arithmetic</span>
+                </div>
+            </button>
+            <button type="button" class="tab-btn" role="tab" id="tab-btn-complements" aria-selected="false" aria-controls="tab-panel-complements" data-tab="complements">
+                <span class="tab-icon">🔄</span>
+                <div class="tab-text-group">
+                    <span class="tab-title">Complements &amp; Subtraction</span>
+                    <span class="tab-sub">(r−1)'s &amp; r's Bases</span>
+                </div>
+            </button>
+            <button type="button" class="tab-btn" role="tab" id="tab-btn-bcd" aria-selected="false" aria-controls="tab-panel-bcd" data-tab="bcd">
+                <span class="tab-icon">⚡</span>
+                <div class="tab-text-group">
+                    <span class="tab-title">BCD Arithmetic</span>
+                    <span class="tab-sub">8421 +6 &amp; 9's/10's Comp</span>
+                </div>
+                <span class="tab-badge">New</span>
+            </button>
+        </nav>
+
+        <!-- ================================================================ -->
+        <!-- TAB 1: CONVERTER & CALCULATOR PANEL                              -->
+        <!-- ================================================================ -->
+        <main id="tab-panel-converter" class="tab-panel active" role="tabpanel" aria-labelledby="tab-btn-converter">
+            <!-- top controls -->
+            <div class="controls-wrapper">
             <div class="control-panel">
                 <label for="num-inputs"><strong>Number of Inputs (Min 3):</strong></label>
                 <input type="number" id="num-inputs" min="3" value="3" aria-label="Number of inputs">
@@ -182,12 +212,14 @@
                 </div>
             </div>
         </div>
+    </main>
 
         <!-- ================================================================ -->
-        <!-- COMPLEMENTS & SUBTRACTION PANEL                                   -->
+        <!-- TAB 2: COMPLEMENTS & SUBTRACTION PANEL                           -->
         <!-- ================================================================ -->
-        <div class="complement-section">
-            <div class="complement-header">
+        <section id="tab-panel-complements" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-complements">
+            <div class="complement-section">
+                <div class="complement-header">
                 <div class="complement-title-area">
                     <h2 class="complement-title">Complements &amp; Subtraction</h2>
                     <p class="complement-subtitle">Compute (r−1)'s and r's complements for any base, and perform subtraction using complement methods</p>
@@ -327,6 +359,137 @@
                 <div id="sub-results-area" class="comp-results-area" style="display: none;"></div>
             </div>
         </div>
+    </section>
+
+        <!-- ================================================================ -->
+        <!-- TAB 3: BCD ARITHMETIC PANEL                                      -->
+        <!-- ================================================================ -->
+        <section id="tab-panel-bcd" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-bcd">
+            <div class="bcd-section">
+                <div class="bcd-header">
+                    <div class="bcd-title-area">
+                        <div class="bcd-title-row">
+                            <h2 class="bcd-title">BCD (Binary-Coded Decimal) Arithmetic</h2>
+                            <span class="bcd-tag">8421 BCD Code</span>
+                        </div>
+                        <p class="bcd-subtitle">
+                            Execute BCD Addition with automatic +6 (0110₂) correction and BCD Subtraction using both 9's and 10's complement methods with complete carry handling
+                        </p>
+                    </div>
+
+                    <!-- BCD Operation Mode Toggle -->
+                    <div class="bcd-mode-toggle" id="bcd-mode-toggle">
+                        <button type="button" class="bcd-mode-btn active" id="bcd-mode-add" data-bcd-mode="add">
+                            <span class="mode-icon">➕</span> BCD Addition (+6 Rule)
+                        </button>
+                        <button type="button" class="bcd-mode-btn" id="bcd-mode-sub" data-bcd-mode="sub">
+                            <span class="mode-icon">➖</span> BCD Subtraction (Complements)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- BCD Presets Bar -->
+                <div class="bcd-presets-bar">
+                    <span class="bar-label">Quick Presets:</span>
+                    <div class="bcd-presets-row" id="bcd-add-presets">
+                        <span class="comp-presets-group-label">Addition:</span>
+                        <button type="button" class="bcd-preset-btn" data-bcd-preset="add-simple">5 + 3 (No Corr)</button>
+                        <button type="button" class="bcd-preset-btn" data-bcd-preset="add-corr">7 + 6 (Sum &gt; 9)</button>
+                        <button type="button" class="bcd-preset-btn" data-bcd-preset="add-multi">48 + 35 (Multi-Digit)</button>
+                        <button type="button" class="bcd-preset-btn" data-bcd-preset="add-endcarry">687 + 549 (End Carry)</button>
+                        <button type="button" class="bcd-preset-btn" data-bcd-preset="add-cascade">999 + 1 (Cascade)</button>
+                    </div>
+                    <div class="bcd-presets-row" id="bcd-sub-presets" style="display: none;">
+                        <span class="comp-presets-group-label">Subtraction:</span>
+                        <button type="button" class="bcd-preset-btn" data-bcd-preset="sub-pos">85 − 32 (A &gt; B)</button>
+                        <button type="button" class="bcd-preset-btn" data-bcd-preset="sub-neg">32 − 85 (A &lt; B Neg)</button>
+                        <button type="button" class="bcd-preset-btn" data-bcd-preset="sub-3dig">450 − 186 (3-Digit)</button>
+                        <button type="button" class="bcd-preset-btn" data-bcd-preset="sub-3digneg">125 − 379 (3-Digit Neg)</button>
+                        <button type="button" class="bcd-preset-btn" data-bcd-preset="sub-zero">77 − 77 (Zero)</button>
+                    </div>
+                </div>
+
+                <!-- Subtraction View Mode Selector (visible only when in Subtraction mode) -->
+                <div class="bcd-sub-view-selector" id="bcd-sub-view-selector" style="display: none;">
+                    <span class="sub-view-label">Complement View:</span>
+                    <div class="sub-view-buttons">
+                        <button type="button" class="sub-view-btn active" data-view="both">Side-by-Side (9's &amp; 10's)</button>
+                        <button type="button" class="sub-view-btn" data-view="9s">9's Complement Only</button>
+                        <button type="button" class="sub-view-btn" data-view="10s">10's Complement Only</button>
+                    </div>
+                </div>
+
+                <!-- BCD Input Card -->
+                <div class="bcd-input-card">
+                    <div class="bcd-card-header">
+                        <span class="section-label" id="bcd-input-section-label">BCD Input Operands</span>
+                        <span class="panel-hint" id="bcd-input-hint">Enter unsigned decimal numbers. Each digit is encoded into 4-bit BCD (8421).</span>
+                    </div>
+
+                    <div class="bcd-operands-grid">
+                        <!-- Operand A -->
+                        <div class="bcd-operand-box">
+                            <div class="bcd-operand-header">
+                                <label for="bcd-val-a" class="comp-label">Operand A (Decimal)</label>
+                                <span class="bcd-operand-tag" id="bcd-tag-a">Augend</span>
+                            </div>
+                            <input type="text" id="bcd-val-a" class="value-input bcd-input" placeholder="e.g. 687" value="687" spellcheck="false" autocomplete="off">
+                            <div class="bcd-preview" id="bcd-preview-a"></div>
+                        </div>
+
+                        <!-- Operator Sign Indicator -->
+                        <div class="bcd-operator-indicator" id="bcd-operator-symbol" title="Operation">+</div>
+
+                        <!-- Operand B -->
+                        <div class="bcd-operand-box">
+                            <div class="bcd-operand-header">
+                                <label for="bcd-val-b" class="comp-label">Operand B (Decimal)</label>
+                                <span class="bcd-operand-tag" id="bcd-tag-b">Addend</span>
+                            </div>
+                            <input type="text" id="bcd-val-b" class="value-input bcd-input" placeholder="e.g. 549" value="549" spellcheck="false" autocomplete="off">
+                            <div class="bcd-preview" id="bcd-preview-b"></div>
+                        </div>
+                    </div>
+
+                    <!-- Alignment / Digit Width Controls -->
+                    <div class="bcd-controls-row">
+                        <div class="bcd-digit-options">
+                            <div class="comp-field comp-field-narrow">
+                                <label for="bcd-digits" class="comp-label">Digit Width</label>
+                                <input type="number" id="bcd-digits" min="1" max="16" value="3" class="comp-digit-input">
+                            </div>
+                            <div class="comp-field comp-field-auto">
+                                <label class="comp-auto-label">
+                                    <input type="checkbox" id="bcd-auto-digits" checked> Auto Align
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="bcd-quick-actions">
+                            <button type="button" id="bcd-swap-btn" class="bcd-secondary-btn" title="Swap Operands A and B">
+                                <span>⇄</span> Swap
+                            </button>
+                            <button type="button" id="bcd-clear-btn" class="bcd-secondary-btn" title="Clear Inputs">
+                                <span>✕</span> Clear
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Error message banner -->
+                    <div class="error-message" id="bcd-error" style="display: none;">Invalid input. Decimal digits (0-9) only.</div>
+
+                    <!-- Primary Action Button -->
+                    <div class="bcd-action-row">
+                        <button type="button" id="bcd-calc-btn" class="primary-btn bcd-primary-btn">
+                            <span class="btn-icon">⚡</span> Execute BCD Addition
+                        </button>
+                    </div>
+                </div>
+
+                <!-- BCD Results Area -->
+                <div id="bcd-results-area" class="bcd-results-area" style="display: none;"></div>
+            </div>
+        </section>
     </div>
 
     <script src="script.js"></script>

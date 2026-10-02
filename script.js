@@ -2143,3 +2143,1108 @@ compPresetBtns.forEach(btn => {
 if (compDisplayPanel) {
     switchCompMode('display');
 }
+
+// ==========================================================================
+// TAB NAVIGATION CONTROLLER
+// ==========================================================================
+
+const tabButtons = document.querySelectorAll('.tab-btn');
+const tabPanels = document.querySelectorAll('.tab-panel');
+
+function switchMainTab(targetTabId) {
+    if (!targetTabId) return;
+
+    tabButtons.forEach(btn => {
+        const isActive = btn.dataset.tab === targetTabId;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
+    tabPanels.forEach(panel => {
+        const isTarget = panel.id === `tab-panel-${targetTabId}`;
+        panel.classList.toggle('active', isTarget);
+    });
+
+    // Update URL hash without jumping page
+    if (history.replaceState) {
+        history.replaceState(null, '', `#${targetTabId}`);
+    }
+}
+
+tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        switchMainTab(tab);
+    });
+});
+
+// Sync tab with initial hash if present
+window.addEventListener('DOMContentLoaded', () => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash && ['converter', 'complements', 'bcd'].includes(hash)) {
+        switchMainTab(hash);
+    }
+});
+
+// Also support popstate/hashchange
+window.addEventListener('hashchange', () => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash && ['converter', 'complements', 'bcd'].includes(hash)) {
+        switchMainTab(hash);
+    }
+});
+
+// ==========================================================================
+// BCD (BINARY-CODED DECIMAL) ARITHMETIC ENGINE (8421 CODE)
+// Supports BCD Addition with +6 (0110₂) Correction & BCD Subtraction
+// using both 9's Complement (End-Around Carry) and 10's Complement (Discard Carry)
+// ==========================================================================
+
+// DOM Elements for BCD
+const bcdModeAddBtn = document.getElementById('bcd-mode-add');
+const bcdModeSubBtn = document.getElementById('bcd-mode-sub');
+const bcdAddPresets = document.getElementById('bcd-add-presets');
+const bcdSubPresets = document.getElementById('bcd-sub-presets');
+const bcdSubViewSelector = document.getElementById('bcd-sub-view-selector');
+const bcdSubViewButtons = document.querySelectorAll('.sub-view-btn');
+
+const bcdValAInput = document.getElementById('bcd-val-a');
+const bcdValBInput = document.getElementById('bcd-val-b');
+const bcdPreviewA = document.getElementById('bcd-preview-a');
+const bcdPreviewB = document.getElementById('bcd-preview-b');
+const bcdOperatorSymbol = document.getElementById('bcd-operator-symbol');
+const bcdTagA = document.getElementById('bcd-tag-a');
+const bcdTagB = document.getElementById('bcd-tag-b');
+
+const bcdDigitsInput = document.getElementById('bcd-digits');
+const bcdAutoDigits = document.getElementById('bcd-auto-digits');
+const bcdSwapBtn = document.getElementById('bcd-swap-btn');
+const bcdClearBtn = document.getElementById('bcd-clear-btn');
+const bcdCalcBtn = document.getElementById('bcd-calc-btn');
+const bcdError = document.getElementById('bcd-error');
+const bcdResultsArea = document.getElementById('bcd-results-area');
+const bcdPresetButtons = document.querySelectorAll('.bcd-preset-btn');
+
+let currentBcdMode = 'add'; // 'add' | 'sub'
+let currentBcdSubView = 'both'; // 'both' | '9s' | '10s'
+
+// Position Place Values Map for Educational Display
+function getBcdPositionName(power) {
+    const names = [
+        'Units (10⁰)',
+        'Tens (10¹)',
+        'Hundreds (10²)',
+        'Thousands (10³)',
+        'Ten Thousands (10⁴)',
+        'Hundred Thousands (10⁵)',
+        'Millions (10⁶)',
+        'Ten Millions (10⁷)',
+        'Hundred Millions (10⁸)'
+    ];
+    return names[power] || `10^${power} Place`;
+}
+
+// Convert single decimal digit (0-9) to 4-bit BCD string
+function decimalDigitToBCD(digit) {
+    const num = typeof digit === 'number' ? digit : parseInt(digit, 10);
+    if (isNaN(num) || num < 0 || num > 9) return '0000';
+    return num.toString(2).padStart(4, '0');
+}
+
+// Convert 4-bit binary string to decimal digit
+function bcdNibbleToDecimal(nibbleStr) {
+    const val = parseInt(nibbleStr, 2);
+    return isNaN(val) ? 0 : val;
+}
+
+// Validate that input contains only decimal digits
+function validateBCDInput(str) {
+    if (!str || typeof str !== 'string') return false;
+    const trimmed = str.trim();
+    return /^[0-9]+$/.test(trimmed);
+}
+
+// Live interactive preview under BCD input fields
+function updateBCDInputPreview(inputEl, previewEl) {
+    if (!inputEl || !previewEl) return;
+    const rawVal = inputEl.value.trim();
+
+    if (!rawVal) {
+        previewEl.innerHTML = '<span style="color: var(--text-faint); font-size: 0.75rem;">Enter decimal digits to preview 8421 BCD nibbles</span>';
+        return;
+    }
+
+    if (!/^[0-9]+$/.test(rawVal)) {
+        previewEl.innerHTML = '<span style="color: var(--error); font-size: 0.75rem;">⚠ Contains non-decimal digits</span>';
+        return;
+    }
+
+    let pillsHtml = '';
+    for (let i = 0; i < rawVal.length; i++) {
+        const d = rawVal[i];
+        const nibble = decimalDigitToBCD(d);
+        pillsHtml += `
+            <div class="bcd-nibble-pill" title="Digit ${d} = BCD ${nibble}">
+                <span class="bcd-nibble-digit">${d}</span>
+                <span class="bcd-nibble-bits">${nibble}</span>
+            </div>
+        `;
+    }
+    previewEl.innerHTML = pillsHtml;
+}
+
+// Update auto digit width when inputs change
+function updateBcdDigitWidthState() {
+    if (!bcdAutoDigits || !bcdDigitsInput) return;
+    if (bcdAutoDigits.checked) {
+        const lenA = (bcdValAInput?.value.trim() || '').length;
+        const lenB = (bcdValBInput?.value.trim() || '').length;
+        const maxLen = Math.max(1, lenA, lenB);
+        bcdDigitsInput.value = maxLen;
+        bcdDigitsInput.disabled = true;
+    } else {
+        bcdDigitsInput.disabled = false;
+    }
+}
+
+// Switch BCD Operation Mode (Add vs Sub)
+function switchBcdMode(mode) {
+    currentBcdMode = mode;
+    const isAdd = mode === 'add';
+
+    if (bcdModeAddBtn) bcdModeAddBtn.classList.toggle('active', isAdd);
+    if (bcdModeSubBtn) bcdModeSubBtn.classList.toggle('active', !isAdd);
+
+    if (bcdAddPresets) bcdAddPresets.style.display = isAdd ? 'flex' : 'none';
+    if (bcdSubPresets) bcdSubPresets.style.display = isAdd ? 'none' : 'flex';
+    if (bcdSubViewSelector) bcdSubViewSelector.style.display = isAdd ? 'none' : 'flex';
+
+    if (bcdOperatorSymbol) {
+        bcdOperatorSymbol.textContent = isAdd ? '+' : '−';
+        bcdOperatorSymbol.title = isAdd ? 'Addition' : 'Subtraction';
+    }
+
+    if (bcdTagA) bcdTagA.textContent = isAdd ? 'Augend' : 'Minuend';
+    if (bcdTagB) bcdTagB.textContent = isAdd ? 'Addend' : 'Subtrahend';
+
+    if (bcdCalcBtn) {
+        bcdCalcBtn.innerHTML = isAdd
+            ? '<span class="btn-icon">⚡</span> Execute BCD Addition'
+            : '<span class="btn-icon">⚡</span> Execute BCD Subtraction (9\'s & 10\'s Complements)';
+    }
+
+    if (bcdResultsArea) {
+        bcdResultsArea.style.display = 'none';
+        bcdResultsArea.innerHTML = '';
+    }
+}
+
+// Switch Subtraction Comparison View (Both vs 9s vs 10s)
+function switchBcdSubView(view) {
+    currentBcdSubView = view;
+    bcdSubViewButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === view);
+    });
+
+    const compareGrid = document.querySelector('.bcd-sub-compare-grid');
+    if (compareGrid) {
+        const col9s = compareGrid.querySelector('.col-9s');
+        const col10s = compareGrid.querySelector('.col-10s');
+
+        if (view === 'both') {
+            compareGrid.classList.remove('single-column');
+            if (col9s) col9s.style.display = 'flex';
+            if (col10s) col10s.style.display = 'flex';
+        } else if (view === '9s') {
+            compareGrid.classList.add('single-column');
+            if (col9s) col9s.style.display = 'flex';
+            if (col10s) col10s.style.display = 'none';
+        } else if (view === '10s') {
+            compareGrid.classList.add('single-column');
+            if (col9s) col9s.style.display = 'none';
+            if (col10s) col10s.style.display = 'flex';
+        }
+    }
+}
+
+// ==========================================================================
+// CORE BCD ARITHMETIC LOGIC
+// ==========================================================================
+
+/**
+ * Perform BCD Addition of two decimal strings with digit-by-digit +6 correction.
+ * @param {string} valAStr - First decimal number string
+ * @param {string} valBStr - Second decimal number string
+ * @param {number} minWidth - Minimum digit width for alignment
+ * @returns {object} Full step-by-step breakdown of BCD addition
+ */
+function addBCD(valAStr, valBStr, minWidth = 0) {
+    const rawA = valAStr.trim();
+    const rawB = valBStr.trim();
+    const N = Math.max(rawA.length, rawB.length, minWidth, 1);
+
+    const alignedA = rawA.padStart(N, '0');
+    const alignedB = rawB.padStart(N, '0');
+
+    const nibbleSteps = [];
+    let carry = 0;
+    const resultDigits = [];
+
+    // Process from right (least significant) to left (most significant)
+    for (let i = N - 1; i >= 0; i--) {
+        const digitA = parseInt(alignedA[i], 10);
+        const digitB = parseInt(alignedB[i], 10);
+        const carryIn = carry;
+        const power = N - 1 - i;
+
+        const nibbleA = decimalDigitToBCD(digitA);
+        const nibbleB = decimalDigitToBCD(digitB);
+
+        // Binary sum of the two 4-bit nibbles plus carry-in
+        const rawSum = digitA + digitB + carryIn;
+        const rawBits = rawSum.toString(2).padStart(4, '0');
+
+        // BCD Correction condition:
+        // Correction (+6 / 0110₂) is required if:
+        // 1. rawSum > 9 (invalid BCD code 1010₂ to 1111₂), OR
+        // 2. Binary addition generated a nibble carry (rawSum >= 16)
+        let correctionNeeded = false;
+        let correctedSum = rawSum;
+        let resDigit = rawSum;
+        let carryOut = 0;
+
+        if (rawSum > 9) {
+            correctionNeeded = true;
+            correctedSum = rawSum + 6;
+            resDigit = (rawSum + 6) & 0xF;
+            carryOut = 1;
+        } else {
+            correctionNeeded = false;
+            correctedSum = rawSum;
+            resDigit = rawSum;
+            carryOut = 0;
+        }
+
+        const resNibble = decimalDigitToBCD(resDigit);
+        resultDigits.unshift(resDigit.toString());
+
+        nibbleSteps.push({
+            stepNumber: N - i,
+            positionIndex: i,
+            power,
+            positionName: getBcdPositionName(power),
+            digitA,
+            digitB,
+            nibbleA,
+            nibbleB,
+            carryIn,
+            rawSum,
+            rawBits,
+            correctionNeeded,
+            correctedSum,
+            resDigit,
+            resNibble,
+            carryOut
+        });
+
+        carry = carryOut;
+    }
+
+    const endCarry = carry;
+    const sumDigitsOnly = resultDigits.join('');
+    const finalDigits = (endCarry === 1 ? '1' : '') + sumDigitsOnly;
+
+    // Convert full result digits to 4-bit nibbles
+    const resultBCD = [];
+    for (let ch of finalDigits) {
+        resultBCD.push(decimalDigitToBCD(ch));
+    }
+
+    return {
+        numA: rawA,
+        numB: rawB,
+        alignedA,
+        alignedB,
+        alignedLength: N,
+        nibbleSteps, // ordered from LSB to MSB as evaluated
+        endCarry,
+        sumDigitsOnly,
+        finalDigits,
+        resultBCD,
+        decimalValue: parseInt(finalDigits, 10)
+    };
+}
+
+/**
+ * Perform BCD Subtraction of A - B using 9's Complement.
+ * 1. Compute 9's complement of B: (10^N - 1) - B
+ * 2. Add A + Comp9(B) using BCD Adder
+ * 3. End Carry:
+ *    - If 1: Result is positive. End-around carry! Add 1 to BCD sum.
+ *    - If 0: Result is negative. Re-complement BCD sum using 9's complement.
+ */
+function bcdSubtract9sComplement(valAStr, valBStr, minWidth = 0) {
+    const rawA = valAStr.trim();
+    const rawB = valBStr.trim();
+    const N = Math.max(rawA.length, rawB.length, minWidth, 1);
+
+    const alignedA = rawA.padStart(N, '0');
+    const alignedB = rawB.padStart(N, '0');
+
+    // Step 1: Compute 9's complement of B
+    let comp9Str = '';
+    const comp9DigitSteps = [];
+    for (let i = 0; i < N; i++) {
+        const d = parseInt(alignedB[i], 10);
+        const compD = 9 - d;
+        comp9Str += compD.toString();
+        comp9DigitSteps.push({
+            index: i,
+            power: N - 1 - i,
+            origDigit: d,
+            compDigit: compD,
+            nibble: decimalDigitToBCD(compD)
+        });
+    }
+
+    // Step 2: BCD Addition: alignedA + comp9Str
+    const additionResult = addBCD(alignedA, comp9Str, N);
+
+    // Step 3: Check End Carry
+    const endCarry = additionResult.endCarry;
+    const isPositive = endCarry === 1;
+
+    let finalDigits = '';
+    let endAroundCarryResult = null;
+    let recomplementSteps = [];
+
+    if (isPositive) {
+        // End-around carry: Add 1 to additionResult.sumDigitsOnly using BCD adder
+        endAroundCarryResult = addBCD(additionResult.sumDigitsOnly, '1', N);
+        finalDigits = endAroundCarryResult.sumDigitsOnly;
+    } else {
+        // No carry: Re-complement the intermediate sum using 9's complement
+        for (let i = 0; i < N; i++) {
+            const d = parseInt(additionResult.sumDigitsOnly[i], 10);
+            const compD = 9 - d;
+            finalDigits += compD.toString();
+            recomplementSteps.push({
+                index: i,
+                power: N - 1 - i,
+                origDigit: d,
+                compDigit: compD,
+                nibble: decimalDigitToBCD(compD)
+            });
+        }
+    }
+
+    const finalNibbles = [];
+    for (let ch of finalDigits) {
+        finalNibbles.push(decimalDigitToBCD(ch));
+    }
+
+    const isZero = parseInt(finalDigits, 10) === 0;
+    const decVal = (isPositive || isZero ? 1 : -1) * parseInt(finalDigits, 10);
+    const resultSign = isZero ? '+' : (isPositive ? '+' : '−');
+
+    return {
+        method: '9s',
+        alignedA,
+        alignedB,
+        alignedLength: N,
+        comp9Str,
+        comp9DigitSteps,
+        additionResult,
+        endCarry,
+        isPositive: isPositive || isZero,
+        isZero,
+        endAroundCarryResult,
+        recomplementSteps,
+        finalDigits,
+        finalNibbles,
+        decimalValue: decVal,
+        sign: resultSign
+    };
+}
+
+/**
+ * Perform BCD Subtraction of A - B using 10's Complement.
+ * 1. Compute 10's complement of B: (10^N - B) = 9's Comp(B) + 1
+ * 2. Add A + Comp10(B) using BCD Adder
+ * 3. End Carry:
+ *    - If 1: Result is positive. Discard end carry! Final result is the N-digit sum.
+ *    - If 0: Result is negative. Re-complement BCD sum using 10's complement.
+ */
+function bcdSubtract10sComplement(valAStr, valBStr, minWidth = 0) {
+    const rawA = valAStr.trim();
+    const rawB = valBStr.trim();
+    const N = Math.max(rawA.length, rawB.length, minWidth, 1);
+
+    const alignedA = rawA.padStart(N, '0');
+    const alignedB = rawB.padStart(N, '0');
+
+    // Step 1: Compute 9's complement then add 1 to get 10's complement
+    let comp9Str = '';
+    for (let i = 0; i < N; i++) {
+        comp9Str += (9 - parseInt(alignedB[i], 10)).toString();
+    }
+    // Add 1 in BCD to get 10's complement
+    const comp10AddResult = addBCD(comp9Str, '1', N);
+    const comp10Str = comp10AddResult.sumDigitsOnly;
+
+    // Step 2: BCD Addition: alignedA + comp10Str
+    const additionResult = addBCD(alignedA, comp10Str, N);
+
+    // Step 3: Check End Carry
+    const endCarry = additionResult.endCarry;
+    const isPositive = endCarry === 1;
+
+    let finalDigits = '';
+    let recomplementSteps = [];
+
+    if (isPositive) {
+        // Discard end carry
+        finalDigits = additionResult.sumDigitsOnly;
+    } else {
+        // No carry: Re-complement the intermediate sum using 10's complement
+        let interComp9 = '';
+        for (let i = 0; i < N; i++) {
+            interComp9 += (9 - parseInt(additionResult.sumDigitsOnly[i], 10)).toString();
+        }
+        const recompAdd1 = addBCD(interComp9, '1', N);
+        finalDigits = recompAdd1.sumDigitsOnly;
+
+        for (let i = 0; i < N; i++) {
+            recomplementSteps.push({
+                index: i,
+                power: N - 1 - i,
+                origDigit: parseInt(additionResult.sumDigitsOnly[i], 10),
+                comp9Digit: parseInt(interComp9[i], 10),
+                finalDigit: parseInt(finalDigits[i], 10),
+                nibble: decimalDigitToBCD(finalDigits[i])
+            });
+        }
+    }
+
+    const finalNibbles = [];
+    for (let ch of finalDigits) {
+        finalNibbles.push(decimalDigitToBCD(ch));
+    }
+
+    const isZero = parseInt(finalDigits, 10) === 0;
+    const decVal = (isPositive || isZero ? 1 : -1) * parseInt(finalDigits, 10);
+    const resultSign = isZero ? '+' : (isPositive ? '+' : '−');
+
+    return {
+        method: '10s',
+        alignedA,
+        alignedB,
+        alignedLength: N,
+        comp9Str,
+        comp10Str,
+        additionResult,
+        endCarry,
+        isPositive: isPositive || isZero,
+        isZero,
+        recomplementSteps,
+        finalDigits,
+        finalNibbles,
+        decimalValue: decVal,
+        sign: resultSign
+    };
+}
+
+// ==========================================================================
+// BCD UI RENDERING
+// ==========================================================================
+
+// Helper to copy text to clipboard
+function copyToClipboard(text, btnElement, successMsg = 'Copied!') {
+    if (!navigator.clipboard) return;
+    navigator.clipboard.writeText(text).then(() => {
+        const originalText = btnElement.innerHTML;
+        btnElement.innerHTML = `✓ ${successMsg}`;
+        btnElement.style.borderColor = 'var(--accent-emerald)';
+        btnElement.style.color = 'var(--accent-emerald)';
+        setTimeout(() => {
+            btnElement.innerHTML = originalText;
+            btnElement.style.borderColor = '';
+            btnElement.style.color = '';
+        }, 1800);
+    }).catch(err => {
+        console.error('Failed to copy to clipboard', err);
+    });
+}
+
+/**
+ * Render BCD Addition Results into the DOM
+ */
+function renderBCDAdditionResult(res, rawA, rawB) {
+    if (!bcdResultsArea) return;
+
+    const bcdChunksHtml = res.resultBCD.map((nibble, idx) => {
+        const isCarry = res.endCarry === 1 && idx === 0;
+        const d = res.finalDigits[idx];
+        return `
+            <div class="bcd-group-chunk ${isCarry ? 'carry-chunk' : ''}">
+                <span>${nibble}</span>
+                <span class="bcd-chunk-digit">${isCarry ? 'Carry-Out (1)' : `Digit ${d}`}</span>
+            </div>
+        `;
+    }).join('');
+
+    const bcdSpaced = res.resultBCD.join(' ');
+
+    // Reverse steps array so it displays MSB to LSB for readable column order
+    const orderedSteps = [...res.nibbleSteps].reverse();
+
+    const nibbleCardsHtml = orderedSteps.map(step => {
+        const corrBadge = step.correctionNeeded
+            ? '<span class="bcd-corr-badge needed">Correction Needed (+6)</span>'
+            : '<span class="bcd-corr-badge none">No Correction</span>';
+
+        const explanation = step.correctionNeeded
+            ? `Raw binary sum is <strong>${step.rawSum} (${step.rawBits}₂)</strong>, which exceeds 9 (invalid BCD code). Adding <strong>+6 (0110₂)</strong> skips the 6 unused states: ${step.rawSum} + 6 = <strong>${step.correctedSum}</strong>. Produces BCD nibble <strong>${step.resNibble} (${step.resDigit})</strong> with carry-out of <strong>1</strong>.`
+            : `Raw binary sum is <strong>${step.rawSum} (${step.rawBits}₂)</strong>, which is ≤ 9 (valid BCD code). No correction required. Produces BCD nibble <strong>${step.resNibble} (${step.resDigit})</strong> with carry-out of <strong>0</strong>.`;
+
+        return `
+            <div class="bcd-nibble-card ${step.correctionNeeded ? 'has-correction' : 'no-correction'}">
+                <div class="bcd-card-pos-header">
+                    <span class="bcd-pos-title">${step.positionName}</span>
+                    ${corrBadge}
+                </div>
+                <div class="bcd-calc-math-table">
+                    <div class="bcd-math-row">
+                        <span>Operand A Digit (${step.digitA}):</span>
+                        <span>${step.nibbleA}₂</span>
+                    </div>
+                    <div class="bcd-math-row">
+                        <span>Operand B Digit (${step.digitB}):</span>
+                        <span>${step.nibbleB}₂</span>
+                    </div>
+                    <div class="bcd-math-row">
+                        <span>Carry In:</span>
+                        <span>${step.carryIn}</span>
+                    </div>
+                    <div class="bcd-math-row divider">
+                        <span>Raw Binary Sum:</span>
+                        <span>${step.rawBits}₂ (${step.rawSum})</span>
+                    </div>
+                    ${step.correctionNeeded ? `
+                    <div class="bcd-math-row correction-row">
+                        <span>+6 Correction:</span>
+                        <span>+ 0110₂ (+6)</span>
+                    </div>
+                    ` : ''}
+                    <div class="bcd-math-row result-row divider">
+                        <span>Result Nibble:</span>
+                        <span>${step.resNibble}₂ (${step.resDigit})</span>
+                    </div>
+                    <div class="bcd-math-row">
+                        <span>Carry Out to Next:</span>
+                        <span>${step.carryOut}</span>
+                    </div>
+                </div>
+                <p class="bcd-explanation-text">${explanation}</p>
+            </div>
+        `;
+    }).join('');
+
+    // Aligned columnar BCD stack table
+    let stackHeaders = '<th>Row</th>';
+    let rowCarryIn = '<td><strong>Carry In</strong></td>';
+    let rowA = `<td><strong>A (${rawA})</strong></td>`;
+    let rowB = `<td><strong>B (${rawB})</strong></td>`;
+    let rowRaw = '<td><strong>Raw Sum</strong></td>';
+    let rowCorr = '<td><strong>+6 Corr</strong></td>';
+    let rowRes = `<td><strong>Result (${res.finalDigits})</strong></td>`;
+
+    if (res.endCarry === 1) {
+        stackHeaders += '<th>End Carry</th>';
+        rowCarryIn += '<td>1</td>';
+        rowA += '<td>0000</td>';
+        rowB += '<td>0000</td>';
+        rowRaw += '<td>0001</td>';
+        rowCorr += '<td>-</td>';
+        rowRes += '<td>0001</td>';
+    }
+
+    orderedSteps.forEach(step => {
+        stackHeaders += `<th>${step.positionName}</th>`;
+        rowCarryIn += `<td>${step.carryIn}</td>`;
+        rowA += `<td>${step.nibbleA}</td>`;
+        rowB += `<td>${step.nibbleB}</td>`;
+        rowRaw += `<td>${step.rawBits}</td>`;
+        rowCorr += `<td>${step.correctionNeeded ? '+0110' : '0000'}</td>`;
+        rowRes += `<td>${step.resNibble}</td>`;
+    });
+
+    const stackHtml = `
+        <div class="bcd-stack-wrapper">
+            <table class="bcd-stack-table">
+                <thead><tr>${stackHeaders}</tr></thead>
+                <tbody>
+                    <tr class="row-carry">${rowCarryIn}</tr>
+                    <tr>${rowA}</tr>
+                    <tr>${rowB}</tr>
+                    <tr>${rowRaw}</tr>
+                    <tr class="row-corr">${rowCorr}</tr>
+                    <tr class="row-result">${rowRes}</tr>
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    bcdResultsArea.innerHTML = `
+        <!-- Hero Summary Card -->
+        <div class="bcd-hero-card">
+            <div class="bcd-hero-header">
+                <span class="bcd-hero-title">BCD Addition Result</span>
+                <span class="status-pill success">Calculation Complete</span>
+            </div>
+            <div class="bcd-hero-equation">
+                <span class="accent-num">${rawA}</span> + <span class="accent-num">${rawB}</span> = <span class="accent-res">${res.finalDigits}</span>
+            </div>
+            <div class="bcd-hero-display-grid">
+                <div class="bcd-hero-box">
+                    <span class="bcd-hero-label">8421 BCD Encoded Output (4-Bit Groups)</span>
+                    <div class="bcd-hero-groups">
+                        ${bcdChunksHtml}
+                    </div>
+                </div>
+                <div class="bcd-hero-box">
+                    <span class="bcd-hero-label">Decimal Verification</span>
+                    <div class="bcd-hero-dec-value">${res.finalDigits}₁₀</div>
+                    <span style="font-size: 0.72rem; color: var(--text-faint);">Aligned Width: ${res.alignedLength} Digits</span>
+                </div>
+            </div>
+            <div class="bcd-hero-actions">
+                <button type="button" class="bcd-copy-btn" id="copy-bcd-btn">📋 Copy BCD (${bcdSpaced})</button>
+                <button type="button" class="bcd-copy-btn" id="copy-dec-btn">📋 Copy Decimal (${res.finalDigits})</button>
+            </div>
+        </div>
+
+        <!-- Nibble-by-Nibble Walkthrough -->
+        <div class="bcd-section-card">
+            <div class="card-header">
+                <span class="section-label">Digit-by-Digit Nibble Analysis &amp; +6 Rule</span>
+                <span class="panel-hint">BCD (8421) requires adding 0110₂ whenever a nibble sum exceeds 9 (1001₂) or produces carry</span>
+            </div>
+            <div class="bcd-nibbles-grid">
+                ${nibbleCardsHtml}
+            </div>
+        </div>
+
+        <!-- Aligned Columnar Stack Table -->
+        <div class="bcd-section-card">
+            <div class="card-header">
+                <span class="section-label">Synchronized BCD Columnar Arithmetic Table</span>
+                <span class="panel-hint">Hardware-level representation showing carry propagation and parallel nibble additions</span>
+            </div>
+            ${stackHtml}
+        </div>
+    `;
+
+    bcdResultsArea.style.display = 'flex';
+
+    // Hook copy buttons
+    const copyBcdBtn = document.getElementById('copy-bcd-btn');
+    if (copyBcdBtn) {
+        copyBcdBtn.addEventListener('click', () => copyToClipboard(bcdSpaced, copyBcdBtn, 'BCD Copied!'));
+    }
+    const copyDecBtn = document.getElementById('copy-dec-btn');
+    if (copyDecBtn) {
+        copyDecBtn.addEventListener('click', () => copyToClipboard(res.finalDigits, copyDecBtn, 'Decimal Copied!'));
+    }
+}
+
+/**
+ * Render BCD Subtraction Results (9's and 10's Complements Side-by-Side)
+ */
+function renderBCDSubtractionResult(res9, res10, rawA, rawB) {
+    if (!bcdResultsArea) return;
+
+    const bcdChunks9 = res9.finalNibbles.map((nibble, idx) => `
+        <div class="bcd-group-chunk">
+            <span>${nibble}</span>
+            <span class="bcd-chunk-digit">Digit ${res9.finalDigits[idx]}</span>
+        </div>
+    `).join('');
+
+    const bcdChunks10 = res10.finalNibbles.map((nibble, idx) => `
+        <div class="bcd-group-chunk">
+            <span>${nibble}</span>
+            <span class="bcd-chunk-digit">Digit ${res10.finalDigits[idx]}</span>
+        </div>
+    `).join('');
+
+    const formattedBcd9 = res9.finalNibbles.join(' ');
+    const formattedBcd10 = res10.finalNibbles.join(' ');
+
+    const signedDecDisplay = `${res9.sign}${parseInt(res9.finalDigits, 10)}`;
+
+    // Column 1: 9's Complement Method Walkthrough
+    const verdict9Html = res9.isPositive
+        ? `
+        <div class="bcd-carry-verdict positive">
+            <div class="bcd-verdict-title">✓ End Carry Generated = 1 (Positive Result: A ≥ B)</div>
+            <p class="bcd-verdict-desc">
+                In 9's complement arithmetic, an end carry of <strong>1</strong> indicates that the minuend is greater than or equal to the subtrahend.
+                Apply the <strong>End-Around Carry Rule</strong>: Add <strong>1</strong> to the least significant digit of the BCD sum via BCD addition.
+            </p>
+            <div style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent-emerald); font-weight: 700; margin-top: 0.25rem;">
+                Intermediate Sum (${res9.additionResult.sumDigitsOnly}) + 1 = ${res9.finalDigits} (BCD: ${formattedBcd9})
+            </div>
+        </div>
+        `
+        : `
+        <div class="bcd-carry-verdict negative">
+            <div class="bcd-verdict-title">⚠ No End Carry Generated = 0 (Negative Result: A &lt; B)</div>
+            <p class="bcd-verdict-desc">
+                An end carry of <strong>0</strong> indicates that the minuend is less than the subtrahend. The intermediate BCD sum <strong>${res9.additionResult.sumDigitsOnly}</strong> is in 9's complement form.
+                <strong>Re-complementing:</strong> Take the 9's complement of each digit of the sum to obtain the true magnitude, then attach a negative sign.
+            </p>
+            <div style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--error); font-weight: 700; margin-top: 0.25rem;">
+                9's Comp of (${res9.additionResult.sumDigitsOnly}) = −${res9.finalDigits} (BCD: ${formattedBcd9})
+            </div>
+        </div>
+        `;
+
+    // Column 2: 10's Complement Method Walkthrough
+    const verdict10Html = res10.isPositive
+        ? `
+        <div class="bcd-carry-verdict positive">
+            <div class="bcd-verdict-title">✓ End Carry Generated = 1 (Positive Result: A ≥ B)</div>
+            <p class="bcd-verdict-desc">
+                In 10's complement arithmetic, an end carry of <strong>1</strong> indicates a positive result.
+                <strong>Discard the End Carry:</strong> The remaining digits directly represent the true positive difference.
+            </p>
+            <div style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent-emerald); font-weight: 700; margin-top: 0.25rem;">
+                Discard End Carry → Final Answer = +${res10.finalDigits} (BCD: ${formattedBcd10})
+            </div>
+        </div>
+        `
+        : `
+        <div class="bcd-carry-verdict negative">
+            <div class="bcd-verdict-title">⚠ No End Carry Generated = 0 (Negative Result: A &lt; B)</div>
+            <p class="bcd-verdict-desc">
+                An end carry of <strong>0</strong> indicates that the result is negative and in 10's complement form.
+                <strong>Re-complementing:</strong> Take the 10's complement of the intermediate sum <strong>${res10.additionResult.sumDigitsOnly}</strong> (9's complement + 1) to obtain the true magnitude, then attach a negative sign.
+            </p>
+            <div style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--error); font-weight: 700; margin-top: 0.25rem;">
+                10's Comp of (${res10.additionResult.sumDigitsOnly}) = −${res10.finalDigits} (BCD: ${formattedBcd10})
+            </div>
+        </div>
+        `;
+
+    bcdResultsArea.innerHTML = `
+        <!-- Hero Result Card -->
+        <div class="bcd-hero-card">
+            <div class="bcd-hero-header">
+                <span class="bcd-hero-title">BCD Subtraction Result (9's &amp; 10's Complements)</span>
+                <span class="status-pill ${res9.isPositive ? 'success' : 'neutral'}">${res9.isPositive ? 'Positive Difference' : 'Negative Difference'}</span>
+            </div>
+            <div class="bcd-hero-equation">
+                <span class="accent-num">${rawA}</span> − <span class="accent-num">${rawB}</span> = <span class="accent-res">${signedDecDisplay}</span>
+            </div>
+            <div class="bcd-hero-display-grid">
+                <div class="bcd-hero-box">
+                    <span class="bcd-hero-label">8421 BCD Magnitude Output</span>
+                    <div class="bcd-hero-groups">
+                        ${bcdChunks9}
+                    </div>
+                </div>
+                <div class="bcd-hero-box">
+                    <span class="bcd-hero-label">Decimal Evaluation</span>
+                    <div class="bcd-hero-dec-value">${signedDecDisplay}₁₀</div>
+                    <span style="font-size: 0.72rem; color: var(--text-faint);">Aligned Width: ${res9.alignedLength} Digits</span>
+                </div>
+            </div>
+            <div class="bcd-hero-actions">
+                <button type="button" class="bcd-copy-btn" id="copy-bcd-sub-btn">📋 Copy BCD (${formattedBcd9})</button>
+                <button type="button" class="bcd-copy-btn" id="copy-dec-sub-btn">📋 Copy Decimal (${signedDecDisplay})</button>
+            </div>
+        </div>
+
+        <!-- Side-by-Side Complement Methods Comparison Grid -->
+        <div class="bcd-sub-compare-grid ${currentBcdSubView === 'both' ? '' : 'single-column'}">
+            <!-- 9's Complement Column -->
+            <div class="bcd-comp-column col-9s" style="display: ${currentBcdSubView === '10s' ? 'none' : 'flex'};">
+                <div class="bcd-comp-header">
+                    <h3 class="bcd-comp-title">9's Complement Method</h3>
+                    <span class="sub-method-tag" style="background: rgba(34, 211, 238, 0.12); color: var(--accent-cyan); border: 1px solid rgba(34, 211, 238, 0.3);">End-Around Carry</span>
+                </div>
+
+                <!-- Step 1: 9's Comp of Subtrahend -->
+                <div class="bcd-step-box">
+                    <div class="bcd-step-box-header">
+                        <span class="bcd-step-num-badge">1</span>
+                        <span class="bcd-step-heading">Compute 9's Complement of Subtrahend B</span>
+                    </div>
+                    <p class="bcd-step-desc">
+                        Subtract each digit of aligned B (${res9.alignedB}) from 9:
+                    </p>
+                    <div style="font-family: var(--font-mono); font-size: 0.84rem; background: rgba(0,0,0,0.3); padding: 0.5rem 0.75rem; border-radius: 4px;">
+                        9's Comp of B = <strong>${res9.comp9Str}</strong> (BCD: ${res9.comp9DigitSteps.map(s => s.nibble).join(' ')})
+                    </div>
+                </div>
+
+                <!-- Step 2: BCD Addition A + 9's Comp(B) -->
+                <div class="bcd-step-box">
+                    <div class="bcd-step-box-header">
+                        <span class="bcd-step-num-badge">2</span>
+                        <span class="bcd-step-heading">BCD Addition: A + 9's Comp(B)</span>
+                    </div>
+                    <p class="bcd-step-desc">
+                        Add Minuend A (${res9.alignedA}) and 9's Comp (${res9.comp9Str}) using BCD adder with +6 correction:
+                    </p>
+                    <div style="font-family: var(--font-mono); font-size: 0.84rem; background: rgba(0,0,0,0.3); padding: 0.5rem 0.75rem; border-radius: 4px; display: flex; flex-direction: column; gap: 0.25rem;">
+                        <div>A (BCD): <strong>${res9.additionResult.nibbleSteps.map(s => s.nibbleA).reverse().join(' ')}</strong></div>
+                        <div>+ 9's Comp: <strong>${res9.additionResult.nibbleSteps.map(s => s.nibbleB).reverse().join(' ')}</strong></div>
+                        <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0.25rem; color: #38bdf8;">
+                            Intermediate BCD Sum: <strong>${res9.additionResult.sumDigitsOnly}</strong> (End Carry: <strong>${res9.endCarry}</strong>)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: End Carry Resolution -->
+                <div class="bcd-step-box">
+                    <div class="bcd-step-box-header">
+                        <span class="bcd-step-num-badge">3</span>
+                        <span class="bcd-step-heading">End Carry Analysis &amp; Final Resolution</span>
+                    </div>
+                    ${verdict9Html}
+                </div>
+            </div>
+
+            <!-- 10's Complement Column -->
+            <div class="bcd-comp-column col-10s" style="display: ${currentBcdSubView === '9s' ? 'none' : 'flex'};">
+                <div class="bcd-comp-header">
+                    <h3 class="bcd-comp-title">10's Complement Method</h3>
+                    <span class="sub-method-tag" style="background: rgba(129, 140, 248, 0.12); color: #a5b4fc; border: 1px solid rgba(129, 140, 248, 0.3);">Discard Carry</span>
+                </div>
+
+                <!-- Step 1: 10's Comp of Subtrahend -->
+                <div class="bcd-step-box">
+                    <div class="bcd-step-box-header">
+                        <span class="bcd-step-num-badge">1</span>
+                        <span class="bcd-step-heading">Compute 10's Complement of Subtrahend B</span>
+                    </div>
+                    <p class="bcd-step-desc">
+                        Compute 9's complement of B (${res10.comp9Str}) and add 1 in BCD:
+                    </p>
+                    <div style="font-family: var(--font-mono); font-size: 0.84rem; background: rgba(0,0,0,0.3); padding: 0.5rem 0.75rem; border-radius: 4px;">
+                        10's Comp of B = <strong>${res10.comp10Str}</strong> (BCD: ${res10.comp10Str.split('').map(d => decimalDigitToBCD(d)).join(' ')})
+                    </div>
+                </div>
+
+                <!-- Step 2: BCD Addition A + 10's Comp(B) -->
+                <div class="bcd-step-box">
+                    <div class="bcd-step-box-header">
+                        <span class="bcd-step-num-badge">2</span>
+                        <span class="bcd-step-heading">BCD Addition: A + 10's Comp(B)</span>
+                    </div>
+                    <p class="bcd-step-desc">
+                        Add Minuend A (${res10.alignedA}) and 10's Comp (${res10.comp10Str}) using BCD adder with +6 correction:
+                    </p>
+                    <div style="font-family: var(--font-mono); font-size: 0.84rem; background: rgba(0,0,0,0.3); padding: 0.5rem 0.75rem; border-radius: 4px; display: flex; flex-direction: column; gap: 0.25rem;">
+                        <div>A (BCD): <strong>${res10.additionResult.nibbleSteps.map(s => s.nibbleA).reverse().join(' ')}</strong></div>
+                        <div>+ 10's Comp: <strong>${res10.additionResult.nibbleSteps.map(s => s.nibbleB).reverse().join(' ')}</strong></div>
+                        <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0.25rem; color: #a5b4fc;">
+                            Intermediate BCD Sum: <strong>${res10.additionResult.sumDigitsOnly}</strong> (End Carry: <strong>${res10.endCarry}</strong>)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: End Carry Resolution -->
+                <div class="bcd-step-box">
+                    <div class="bcd-step-box-header">
+                        <span class="bcd-step-num-badge">3</span>
+                        <span class="bcd-step-heading">End Carry Analysis &amp; Final Resolution</span>
+                    </div>
+                    ${verdict10Html}
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparative Key Takeaways Card -->
+        <div class="bcd-takeaways-card">
+            <span class="section-label">Comparative Method Analysis (9's vs 10's Complement in BCD)</span>
+            <div class="bcd-takeaways-grid">
+                <div class="bcd-takeaway-item">
+                    <h4>🔄 End-Around Carry vs Discard Carry</h4>
+                    <p>
+                        In 9's complement (diminished radix), an end carry of 1 must be cycled around and added back (+1). In 10's complement (radix complement), an end carry of 1 is simply discarded because the +1 was already incorporated during complement formation.
+                    </p>
+                </div>
+                <div class="bcd-takeaway-item">
+                    <h4>⚖ Negative Result Handling</h4>
+                    <p>
+                        When no end carry is generated (carry = 0), both methods yield an answer in complemented form. The 9's complement result is re-complemented by taking (9 − digit), whereas the 10's complement result is re-complemented by taking (10's complement) of the sum.
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    bcdResultsArea.style.display = 'flex';
+
+    // Hook copy buttons
+    const copyBcdSubBtn = document.getElementById('copy-bcd-sub-btn');
+    if (copyBcdSubBtn) {
+        copyBcdSubBtn.addEventListener('click', () => copyToClipboard(formattedBcd9, copyBcdSubBtn, 'BCD Copied!'));
+    }
+    const copyDecSubBtn = document.getElementById('copy-dec-sub-btn');
+    if (copyDecSubBtn) {
+        copyDecSubBtn.addEventListener('click', () => copyToClipboard(signedDecDisplay, copyDecSubBtn, 'Decimal Copied!'));
+    }
+}
+
+// ==========================================================================
+// BCD CONTROLLER ORCHESTRATION & EVENT LISTENERS
+// ==========================================================================
+
+function processBCDOperation() {
+    if (bcdError) bcdError.style.display = 'none';
+
+    const rawA = bcdValAInput ? bcdValAInput.value.trim() : '';
+    const rawB = bcdValBInput ? bcdValBInput.value.trim() : '';
+
+    if (!validateBCDInput(rawA) || !validateBCDInput(rawB)) {
+        if (bcdError) {
+            bcdError.textContent = 'Invalid input: Both Operand A and Operand B must contain only positive decimal digits (0-9).';
+            bcdError.style.display = 'block';
+        }
+        if (bcdResultsArea) bcdResultsArea.style.display = 'none';
+        return;
+    }
+
+    let minWidth = 0;
+    if (bcdAutoDigits && !bcdAutoDigits.checked && bcdDigitsInput) {
+        minWidth = parseInt(bcdDigitsInput.value, 10) || 0;
+    }
+
+    if (currentBcdMode === 'add') {
+        const addRes = addBCD(rawA, rawB, minWidth);
+        renderBCDAdditionResult(addRes, rawA, rawB);
+    } else {
+        const sub9Res = bcdSubtract9sComplement(rawA, rawB, minWidth);
+        const sub10Res = bcdSubtract10sComplement(rawA, rawB, minWidth);
+        renderBCDSubtractionResult(sub9Res, sub10Res, rawA, rawB);
+    }
+}
+
+// BCD Presets Data
+const BCD_PRESETS = {
+    'add-simple': { mode: 'add', valA: '5', valB: '3', auto: true },
+    'add-corr': { mode: 'add', valA: '7', valB: '6', auto: true },
+    'add-multi': { mode: 'add', valA: '48', valB: '35', auto: true },
+    'add-endcarry': { mode: 'add', valA: '687', valB: '549', auto: true },
+    'add-cascade': { mode: 'add', valA: '999', valB: '1', auto: true },
+    'sub-pos': { mode: 'sub', valA: '85', valB: '32', auto: true },
+    'sub-neg': { mode: 'sub', valA: '32', valB: '85', auto: true },
+    'sub-3dig': { mode: 'sub', valA: '450', valB: '186', auto: true },
+    'sub-3digneg': { mode: 'sub', valA: '125', valB: '379', auto: true },
+    'sub-zero': { mode: 'sub', valA: '77', valB: '77', auto: true }
+};
+
+function loadBcdPreset(presetKey) {
+    const preset = BCD_PRESETS[presetKey];
+    if (!preset) return;
+
+    switchBcdMode(preset.mode);
+
+    if (bcdValAInput) bcdValAInput.value = preset.valA;
+    if (bcdValBInput) bcdValBInput.value = preset.valB;
+
+    if (bcdAutoDigits) {
+        bcdAutoDigits.checked = preset.auto;
+        updateBcdDigitWidthState();
+    }
+
+    updateBCDInputPreview(bcdValAInput, bcdPreviewA);
+    updateBCDInputPreview(bcdValBInput, bcdPreviewB);
+
+    processBCDOperation();
+}
+
+// Event Listeners for BCD Inputs
+if (bcdValAInput) {
+    bcdValAInput.addEventListener('input', () => {
+        updateBCDInputPreview(bcdValAInput, bcdPreviewA);
+        updateBcdDigitWidthState();
+    });
+}
+
+if (bcdValBInput) {
+    bcdValBInput.addEventListener('input', () => {
+        updateBCDInputPreview(bcdValBInput, bcdPreviewB);
+        updateBcdDigitWidthState();
+    });
+}
+
+if (bcdAutoDigits) {
+    bcdAutoDigits.addEventListener('change', updateBcdDigitWidthState);
+}
+
+if (bcdModeAddBtn) {
+    bcdModeAddBtn.addEventListener('click', () => switchBcdMode('add'));
+}
+
+if (bcdModeSubBtn) {
+    bcdModeSubBtn.addEventListener('click', () => switchBcdMode('sub'));
+}
+
+bcdSubViewButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const view = btn.dataset.view;
+        if (view) switchBcdSubView(view);
+    });
+});
+
+if (bcdSwapBtn) {
+    bcdSwapBtn.addEventListener('click', () => {
+        if (!bcdValAInput || !bcdValBInput) return;
+        const temp = bcdValAInput.value;
+        bcdValAInput.value = bcdValBInput.value;
+        bcdValBInput.value = temp;
+        updateBCDInputPreview(bcdValAInput, bcdPreviewA);
+        updateBCDInputPreview(bcdValBInput, bcdPreviewB);
+        updateBcdDigitWidthState();
+        processBCDOperation();
+    });
+}
+
+if (bcdClearBtn) {
+    bcdClearBtn.addEventListener('click', () => {
+        if (bcdValAInput) bcdValAInput.value = '';
+        if (bcdValBInput) bcdValBInput.value = '';
+        updateBCDInputPreview(bcdValAInput, bcdPreviewA);
+        updateBCDInputPreview(bcdValBInput, bcdPreviewB);
+        if (bcdResultsArea) {
+            bcdResultsArea.style.display = 'none';
+            bcdResultsArea.innerHTML = '';
+        }
+        if (bcdError) bcdError.style.display = 'none';
+    });
+}
+
+if (bcdCalcBtn) {
+    bcdCalcBtn.addEventListener('click', processBCDOperation);
+}
+
+bcdPresetButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const presetId = btn.dataset.bcdPreset;
+        if (presetId) loadBcdPreset(presetId);
+    });
+});
+
+// Initialize BCD previews and default calculation
+if (bcdValAInput && bcdPreviewA) {
+    updateBCDInputPreview(bcdValAInput, bcdPreviewA);
+}
+if (bcdValBInput && bcdPreviewB) {
+    updateBCDInputPreview(bcdValBInput, bcdPreviewB);
+}
+updateBcdDigitWidthState();

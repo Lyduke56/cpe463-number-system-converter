@@ -689,3 +689,380 @@ END FUNCTION
 | **2** | 9's comp of B | `9−1=8`, `9−4=5`, `9−8=1` → `851` | `851` |
 | **3** | Add A + comp(B) | `305 + 851 = 1156` | carry = 1, sum = `156` |
 | **4** | End-Around Carry | Carry exists → `156 + 1 = 157` | **+157₁₀** (157₁₀) |
+
+---
+
+## 8. BCD (Binary-Coded Decimal) Arithmetic Engine Algorithms
+
+### 8.1 BCD Encoding & Validation
+
+```text
+FUNCTION DecimalDigitToBCD(digit)
+    // Encodes a single decimal digit (0-9) into standard 4-bit 8421 BCD representation
+    INPUT: digit (integer 0 to 9)
+    OUTPUT: 4-character binary string
+
+    num ← TO_INTEGER(digit)
+    IF num < 0 OR num > 9 THEN
+        RETURN "0000"
+    END IF
+
+    // Extract 4-bit binary representation padded with leading zeros
+    binaryString ← TO_BINARY_STRING(num)
+    RETURN PAD_LEFT(binaryString, 4, '0')
+END FUNCTION
+
+FUNCTION ValidateBCDInput(inputString)
+    // Ensures input string consists strictly of non-empty unsigned decimal digits [0-9]
+    INPUT: inputString (string)
+    OUTPUT: boolean
+
+    trimmed ← TRIM(inputString)
+    IF LENGTH(trimmed) == 0 THEN
+        RETURN FALSE
+    END IF
+
+    FOR EACH character c IN trimmed DO
+        IF c < '0' OR c > '9' THEN
+            RETURN FALSE
+        END IF
+    END FOR
+
+    RETURN TRUE
+END FUNCTION
+```
+
+### 8.2 BCD Addition Algorithm with +6 Rule (`AddBCD`)
+
+```text
+FUNCTION AddBCD(numAStr, numBStr, minWidth)
+    // Performs digit-by-digit BCD (8421) addition with automatic +6 (0110₂) correction
+    INPUT:
+        numAStr  ← decimal string for Operand A (Augend)
+        numBStr  ← decimal string for Operand B (Addend)
+        minWidth ← minimum digit alignment width (default: 0)
+    OUTPUT:
+        Structured object containing final digits, BCD nibbles, carry states, and step breakdowns
+
+    rawA ← TRIM(numAStr)
+    rawB ← TRIM(numBStr)
+    N ← MAX(LENGTH(rawA), LENGTH(rawB), minWidth, 1)
+
+    // Left-pad operands with '0' to align place values
+    alignedA ← PAD_LEFT(rawA, N, '0')
+    alignedB ← PAD_LEFT(rawB, N, '0')
+
+    carry ← 0
+    resultDigits ← EMPTY_ARRAY
+    nibbleSteps ← EMPTY_ARRAY
+
+    // Process each decade position from least significant (right) to most significant (left)
+    FOR i FROM (N - 1) DOWNTO 0 DO
+        digitA ← PARSE_INT(alignedA[i])
+        digitB ← PARSE_INT(alignedB[i])
+        carryIn ← carry
+        power ← (N - 1 - i)
+
+        nibbleA ← DecimalDigitToBCD(digitA)
+        nibbleB ← DecimalDigitToBCD(digitB)
+
+        // Raw 4-bit binary addition with incoming carry
+        rawSum ← digitA + digitB + carryIn
+        rawBits ← PAD_LEFT(TO_BINARY_STRING(rawSum), 4, '0')
+
+        // 8421 BCD Correction Condition:
+        // When raw binary sum exceeds 9 (1001₂), or produces an adder carry (>= 16),
+        // add +6 (0110₂) to skip the 6 invalid 4-bit states (1010₂ through 1111₂)
+        IF rawSum > 9 THEN
+            correctionNeeded ← TRUE
+            correctedSum ← rawSum + 6
+            resDigit ← BITWISE_AND(rawSum + 6, 0x0F) // Equivalent to (rawSum + 6) MOD 16
+            carryOut ← 1
+        ELSE
+            correctionNeeded ← FALSE
+            correctedSum ← rawSum
+            resDigit ← rawSum
+            carryOut ← 0
+        END IF
+
+        resNibble ← DecimalDigitToBCD(resDigit)
+        PREPEND(resultDigits, STRING(resDigit))
+
+        RECORD_STEP(nibbleSteps, {
+            positionIndex: i,
+            power: power,
+            digitA: digitA,
+            digitB: digitB,
+            nibbleA: nibbleA,
+            nibbleB: nibbleB,
+            carryIn: carryIn,
+            rawSum: rawSum,
+            rawBits: rawBits,
+            correctionNeeded: correctionNeeded,
+            correctedSum: correctedSum,
+            resDigit: resDigit,
+            resNibble: resNibble,
+            carryOut: carryOut
+        })
+
+        carry ← carryOut
+    END FOR
+
+    endCarry ← carry
+    sumDigitsOnly ← JOIN(resultDigits, "")
+
+    // Prepend '1' if final MSB carry generated an overflow decade
+    IF endCarry == 1 THEN
+        finalDigits ← "1" + sumDigitsOnly
+    ELSE
+        finalDigits ← sumDigitsOnly
+    END IF
+
+    resultBCD ← MAP_TO_BCD(finalDigits)
+    decimalValue ← PARSE_INT(finalDigits)
+
+    RETURN {
+        alignedA, alignedB, alignedLength: N,
+        nibbleSteps, endCarry, sumDigitsOnly,
+        finalDigits, resultBCD, decimalValue
+    }
+END FUNCTION
+```
+
+### 8.3 BCD Subtraction via 9's Complement (`BCDSubtract9sComplement`)
+
+```text
+FUNCTION BCDSubtract9sComplement(numAStr, numBStr, minWidth)
+    // Computes A - B in BCD using the 9's complement (diminished radix) method
+    INPUT:
+        numAStr  ← decimal string for Minuend (A)
+        numBStr  ← decimal string for Subtrahend (B)
+        minWidth ← minimum digit alignment width
+    OUTPUT:
+        Structured object containing complement steps, end carry analysis, and signed result
+
+    rawA ← TRIM(numAStr)
+    rawB ← TRIM(numBStr)
+    N ← MAX(LENGTH(rawA), LENGTH(rawB), minWidth, 1)
+
+    alignedA ← PAD_LEFT(rawA, N, '0')
+    alignedB ← PAD_LEFT(rawB, N, '0')
+
+    // Step 1: Compute 9's complement of Subtrahend B: (10^N - 1) - B
+    comp9Str ← ""
+    FOR i FROM 0 TO (N - 1) DO
+        d ← PARSE_INT(alignedB[i])
+        compD ← 9 - d
+        comp9Str ← comp9Str + STRING(compD)
+    END FOR
+
+    // Step 2: Perform BCD addition: A + Comp9(B)
+    additionResult ← AddBCD(alignedA, comp9Str, N)
+
+    // Step 3: Analyze End Carry Out
+    endCarry ← additionResult.endCarry
+    isZero ← (PARSE_INT(additionResult.sumDigitsOnly) == 0)
+
+    IF endCarry == 1 THEN
+        // Result is POSITIVE (A >= B): Apply End-Around Carry
+        // Add 1 to the least significant digit of the BCD sum
+        endAroundCarryResult ← AddBCD(additionResult.sumDigitsOnly, "1", N)
+        finalDigits ← endAroundCarryResult.sumDigitsOnly
+        sign ← "+"
+        isPositive ← TRUE
+    ELSE
+        // Result is NEGATIVE (A < B): Sum is in 9's complement form
+        // Re-complement the intermediate BCD sum using 9's complement
+        recompDigits ← ""
+        FOR i FROM 0 TO (N - 1) DO
+            d ← PARSE_INT(additionResult.sumDigitsOnly[i])
+            recompDigits ← recompDigits + STRING(9 - d)
+        END FOR
+        finalDigits ← recompDigits
+        IF isZero THEN
+            sign ← "+"
+            isPositive ← TRUE
+        ELSE
+            sign ← "−"
+            isPositive ← FALSE
+        END IF
+    END IF
+
+    finalNibbles ← MAP_TO_BCD(finalDigits)
+    decimalValue ← (isPositive ? 1 : -1) * PARSE_INT(finalDigits)
+
+    RETURN {
+        alignedA, alignedB, alignedLength: N,
+        comp9Str, additionResult, endCarry,
+        isPositive, isZero, finalDigits, finalNibbles,
+        decimalValue, sign
+    }
+END FUNCTION
+```
+
+### 8.4 BCD Subtraction via 10's Complement (`BCDSubtract10sComplement`)
+
+```text
+FUNCTION BCDSubtract10sComplement(numAStr, numBStr, minWidth)
+    // Computes A - B in BCD using the 10's complement (radix complement) method
+    INPUT:
+        numAStr  ← decimal string for Minuend (A)
+        numBStr  ← decimal string for Subtrahend (B)
+        minWidth ← minimum digit alignment width
+    OUTPUT:
+        Structured object containing complement steps, end carry analysis, and signed result
+
+    rawA ← TRIM(numAStr)
+    rawB ← TRIM(numBStr)
+    N ← MAX(LENGTH(rawA), LENGTH(rawB), minWidth, 1)
+
+    alignedA ← PAD_LEFT(rawA, N, '0')
+    alignedB ← PAD_LEFT(rawB, N, '0')
+
+    // Step 1: Compute 10's complement of Subtrahend B: 9's complement + 1
+    comp9Str ← ""
+    FOR i FROM 0 TO (N - 1) DO
+        comp9Str ← comp9Str + STRING(9 - PARSE_INT(alignedB[i]))
+    END FOR
+    comp10Result ← AddBCD(comp9Str, "1", N)
+    comp10Str ← comp10Result.sumDigitsOnly
+
+    // Step 2: Perform BCD addition: A + Comp10(B)
+    additionResult ← AddBCD(alignedA, comp10Str, N)
+
+    // Step 3: Analyze End Carry Out
+    endCarry ← additionResult.endCarry
+    isZero ← (PARSE_INT(additionResult.sumDigitsOnly) == 0)
+
+    IF endCarry == 1 THEN
+        // Result is POSITIVE (A >= B): Discard End Carry
+        // The N-digit intermediate sum is the true positive magnitude
+        finalDigits ← additionResult.sumDigitsOnly
+        sign ← "+"
+        isPositive ← TRUE
+    ELSE
+        // Result is NEGATIVE (A < B): Sum is in 10's complement form
+        // Re-complement the intermediate BCD sum using 10's complement: 9's comp + 1
+        interComp9 ← ""
+        FOR i FROM 0 TO (N - 1) DO
+            interComp9 ← interComp9 + STRING(9 - PARSE_INT(additionResult.sumDigitsOnly[i]))
+        END FOR
+        recompAdd1 ← AddBCD(interComp9, "1", N)
+        finalDigits ← recompAdd1.sumDigitsOnly
+
+        IF isZero THEN
+            sign ← "+"
+            isPositive ← TRUE
+        ELSE
+            sign ← "−"
+            isPositive ← FALSE
+        END IF
+    END IF
+
+    finalNibbles ← MAP_TO_BCD(finalDigits)
+    decimalValue ← (isPositive ? 1 : -1) * PARSE_INT(finalDigits)
+
+    RETURN {
+        alignedA, alignedB, alignedLength: N,
+        comp9Str, comp10Str, additionResult, endCarry,
+        isPositive, isZero, finalDigits, finalNibbles,
+        decimalValue, sign
+    }
+END FUNCTION
+```
+
+---
+
+## 9. BCD Arithmetic Execution Trace Examples
+
+### Example 1: BCD Addition with +6 Correction `687 + 549 = 1236`
+
+Operands: $A = 687$, $B = 549$, Aligned Width $N = 3$.
+
+| Position | $A_i$ | $B_i$ | $C_{in}$ | Raw Binary Sum | $> 9$ or Carry? | +6 Correction | Result Nibble | $C_{out}$ |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Units ($10^0$)** | `0111` (7) | `1001` (9) | 0 | `10000` (16) | Yes ($\ge 16$) | `10000 + 0110 = 10110` | `0010` (2) | **1** |
+| **Tens ($10^1$)** | `1000` (8) | `0100` (4) | 1 | `01101` (13) | Yes ($13 > 9$) | `01101 + 0110 = 10011` | `0011` (3) | **1** |
+| **Hundreds ($10^2$)** | `0110` (6) | `0101` (5) | 1 | `01100` (12) | Yes ($12 > 9$) | `01100 + 0110 = 10010` | `0010` (2) | **1** |
+
+* Final Carry Out from MSB $= 1$ $\rightarrow$ Prepend BCD digit `0001` (1).
+* **Final BCD Output:** `[0001] [0010] [0011] [0010]`
+* **Final Decimal Output:** **`1236₁₀`**
+
+---
+
+### Example 2: BCD Addition without Correction `5 + 3 = 8`
+
+Operands: $A = 5$, $B = 3$, Aligned Width $N = 1$.
+
+| Position | $A_i$ | $B_i$ | $C_{in}$ | Raw Binary Sum | $> 9$ or Carry? | +6 Correction | Result Nibble | $C_{out}$ |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Units ($10^0$)** | `0101` (5) | `0011` (3) | 0 | `1000` (8) | No ($8 \le 9$) | None (+0000) | `1000` (8) | **0** |
+
+* Final Carry Out $= 0$.
+* **Final BCD Output:** `[1000]`
+* **Final Decimal Output:** **`8₁₀`**
+
+---
+
+### Example 3: BCD Subtraction with 9's Complement ($A > B$) `85 − 32`
+
+Operands: $A = 85$, $B = 32$, Aligned Width $N = 2$.
+
+| Step | Operation | Formula / Calculation | Intermediate Value |
+| :--- | :--- | :--- | :--- |
+| **1** | Compute 9's Complement of $B$ | $(9 - 3) = 6$, $(9 - 2) = 7$ | $B'_{9s} = 67$ (BCD: `0110 0111`) |
+| **2** | BCD Addition: $A + B'_{9s}$ | AddBCD(`85`, `67`):<br/>• Units: $5+7=12 > 9 \rightarrow +6 \rightarrow 2$, carry 1<br/>• Tens: $8+6+1=15 > 9 \rightarrow +6 \rightarrow 5$, carry 1 | Sum = `52`, End Carry = **1** |
+| **3** | End-Around Carry Resolution | End Carry $= 1$ (Positive, $A \ge B$):<br/>Add 1 to intermediate sum via BCD Adder:<br/>`52 + 1 = 53` | **`+53₁₀`** |
+| **4** | Final BCD Output | Map `53` to BCD nibbles | `[0101] [0011]` |
+
+---
+
+### Example 4: BCD Subtraction with 9's Complement ($A < B$) `32 − 85`
+
+Operands: $A = 32$, $B = 85$, Aligned Width $N = 2$.
+
+| Step | Operation | Formula / Calculation | Intermediate Value |
+| :--- | :--- | :--- | :--- |
+| **1** | Compute 9's Complement of $B$ | $(9 - 8) = 1$, $(9 - 5) = 4$ | $B'_{9s} = 14$ (BCD: `0001 0100`) |
+| **2** | BCD Addition: $A + B'_{9s}$ | AddBCD(`32`, `14`):<br/>• Units: $2+4=6 \le 9 \rightarrow 6$, carry 0<br/>• Tens: $3+1=4 \le 9 \rightarrow 4$, carry 0 | Sum = `46`, End Carry = **0** |
+| **3** | Re-complementing Resolution | End Carry $= 0$ (Negative, $A < B$):<br/>Sum is in 9's complement. Re-complement:<br/>$(9 - 4) = 5$, $(9 - 6) = 3 \rightarrow 53$ | **`−53₁₀`** |
+| **4** | Final BCD Output | Map `53` to BCD nibbles with negative sign | `− [0101] [0011]` |
+
+---
+
+### Example 5: BCD Subtraction with 10's Complement ($A > B$) `85 − 32`
+
+Operands: $A = 85$, $B = 32$, Aligned Width $N = 2$.
+
+| Step | Operation | Formula / Calculation | Intermediate Value |
+| :--- | :--- | :--- | :--- |
+| **1** | Compute 10's Complement of $B$ | 9's complement of $32 = 67$<br/>$67 + 1 = 68$ | $B'_{10s} = 68$ (BCD: `0110 1000`) |
+| **2** | BCD Addition: $A + B'_{10s}$ | AddBCD(`85`, `68`):<br/>• Units: $5+8=13 > 9 \rightarrow +6 \rightarrow 3$, carry 1<br/>• Tens: $8+6+1=15 > 9 \rightarrow +6 \rightarrow 5$, carry 1 | Sum = `53`, End Carry = **1** |
+| **3** | End Carry Resolution | End Carry $= 1$ (Positive, $A \ge B$):<br/>Discard End Carry! Remaining digits = `53` | **`+53₁₀`** |
+| **4** | Final BCD Output | Map `53` to BCD nibbles | `[0101] [0011]` |
+
+---
+
+### Example 6: BCD Subtraction with 10's Complement ($A < B$) `32 − 85`
+
+Operands: $A = 32$, $B = 85$, Aligned Width $N = 2$.
+
+| Step | Operation | Formula / Calculation | Intermediate Value |
+| :--- | :--- | :--- | :--- |
+| **1** | Compute 10's Complement of $B$ | 9's complement of $85 = 14$<br/>$14 + 1 = 15$ | $B'_{10s} = 15$ (BCD: `0001 0101`) |
+| **2** | BCD Addition: $A + B'_{10s}$ | AddBCD(`32`, `15`):<br/>• Units: $2+5=7 \le 9 \rightarrow 7$, carry 0<br/>• Tens: $3+1=4 \le 9 \rightarrow 4$, carry 0 | Sum = `47`, End Carry = **0** |
+| **3** | Re-complementing Resolution | End Carry $= 0$ (Negative, $A < B$):<br/>Sum is in 10's complement. Re-complement:<br/>9's comp of $47 = 52$; $52 + 1 = 53$ | **`−53₁₀`** |
+| **4** | Final BCD Output | Map `53` to BCD nibbles with negative sign | `− [0101] [0011]` |
+
+---
+
+### Example 7: BCD Subtraction with Equal Operands ($A = B$) `77 − 77`
+
+Operands: $A = 77$, $B = 77$, Aligned Width $N = 2$.
+
+| Method | Complement of $B$ | BCD Addition ($A + \text{Comp}$) | End Carry | Resolution | Final Output |
+| :--- | :--- | :--- | :---: | :--- | :--- |
+| **9's Complement** | 9's Comp = `22` | `77 + 22 = 99` | **0** | No carry $\rightarrow$ 9's comp of `99` = `00` | **`+00₁₀` (`0`)** |
+| **10's Complement** | 10's Comp = `23` | `77 + 23 = 100` | **1** | Carry $= 1$ $\rightarrow$ Discard carry $\rightarrow$ `00` | **`+00₁₀` (`0`)** |
+

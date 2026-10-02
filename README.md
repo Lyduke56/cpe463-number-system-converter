@@ -74,6 +74,26 @@ Unlike basic calculators that evaluate operations sequentially from left to righ
 - **Cross-Base Subtraction Support:** Minuend and subtrahend can be in different bases; automatic conversion to a common working base
 - **Subtraction Presets:** Pre-configured examples including positive and negative result cases across Binary, Octal, Decimal, and Hexadecimal
 
+### 2.9 BCD (Binary-Coded Decimal) Arithmetic Engine
+- **8421 BCD Code Representation:** Enforces standard 8421 Binary-Coded Decimal encoding where each decimal digit ($0-9$) is mapped to a dedicated 4-bit nibble ($0000_2$ to $1001_2$).
+- **Live Interactive Previews:** As the user enters operands, dynamic 4-bit nibble badges appear underneath each input field showing digit values and binary bit patterns.
+- **BCD Addition with +6 Rule:**
+  - Performs digit-by-digit parallel addition with carry propagation.
+  - Automatically identifies invalid BCD intermediate sums ($> 9$ or binary adder overflow $\ge 16$).
+  - Corrects invalid states by adding $+6$ ($0110_2$) using hardware-accurate modulo 16 arithmetic `(sum + 6) & 0x0F` to skip the six unassigned 4-bit states ($1010_2$ to $1111_2$).
+  - Produces an aligned columnar BCD table and place value cards (Units, Tens, Hundreds, etc.).
+- **BCD Subtraction via 9's & 10's Complements Side-by-Side:**
+  - **9's Complement Method (Diminished Radix):** Derives 9's complement of subtrahend, performs BCD addition. Applies **End-Around Carry** (+1 BCD add) if carry $= 1$ ($A \ge B$), or **Re-complements** sum if carry $= 0$ ($A < B$).
+  - **10's Complement Method (Radix):** Derives 10's complement (9's comp + 1), performs BCD addition. **Discards End Carry** if carry $= 1$ ($A \ge B$), or **Re-complements** sum if carry $= 0$ ($A < B$).
+  - Side-by-side comparison layout with color-coded verdict banners and comparative takeaway analysis.
+- **Dedicated BCD Presets:** 5 pre-configured addition test cases and 5 subtraction test cases covering all edge cases (positive, negative, equal, cascading carries).
+
+### 2.10 3-Tab Segmented Navigation System
+- **Tab 1: Converter & Calculator:** Multi-base inputs, expression parser, virtual keypad, and reduction breakdown.
+- **Tab 2: Complements & Subtraction:** Radix and diminished-radix complement display and subtraction across bases 2, 8, 10, and 16.
+- **Tab 3: BCD Arithmetic:** Comprehensive 8421 BCD addition and complement subtraction environment.
+- **Seamless State & URL Sync:** Tab switches animate smoothly and synchronize with URL hashes (`#converter`, `#complements`, `#bcd`).
+
 ---
 
 ## 3. Project File Structure
@@ -197,15 +217,35 @@ The project is a standalone, client-side web application requiring no external c
 2. Open [index.html](index.html) directly in any modern web browser (Google Chrome, Mozilla Firefox, Microsoft Edge, Safari).
 
 ### 7.2 Usage Instructions
+
+#### Tab 1: Converter & Calculator
 1. **Specify Input Count:** Enter the desired number of inputs (minimum 3) in the top control panel and click **Update Fields**, or select one of the **Quick Test Presets**.
 2. **Provide Values and Radices:**
    - For each input row, select the numeral base (Binary, Octal, Decimal, or Hexadecimal) from the dropdown.
    - Enter a valid number in the text field. The individual conversion matrix will populate automatically.
 3. **Formulate the Equation:**
    - Enter your arithmetic formula in the expression input field, select an expression preset chip, or use the on-screen keypad to insert variables and operators.
-4. **Calculate:**
-   - Click **Calculate & Convert All**.
+4. **Calculate:** Click **Calculate Expression**.
 5. **Inspect the Output:**
    - Review the multi-base formula and decimal substitution.
-   - Expand the **Step-by-Step Evaluation Breakdown** accordion to see each intermediate operation.
-   - Read the final computed result formatted in Binary, Octal, Decimal, and Hexadecimal.
+   - Expand the **Step-by-Step Evaluation Breakdown** accordion to inspect intermediate AST reductions.
+   - Read the final computed result formatted across Binary, Octal, Decimal, and Hexadecimal.
+
+#### Tab 2: Complements & Subtraction
+1. Switch to the **Complements & Subtraction** tab via the top navigation bar.
+2. **Complement Display:** Select a base, input a value, choose digit width, and click **Calculate Complements** to see $(r-1)$'s and $r$'s complements.
+3. **Subtraction via Complements:** Toggle to subtraction mode, enter Minuend $A$ and Subtrahend $B$, and click **Subtract Using Complements** to view both $(r-1)$'s (End-Around Carry) and $r$'s (Discard Carry) methods side-by-side.
+
+#### Tab 3: BCD Arithmetic
+1. Switch to the **BCD Arithmetic** tab via the top navigation bar.
+2. **BCD Addition:**
+   - Select the **BCD Addition (+6 Rule)** mode or choose a quick addition preset (e.g., `687 + 549`).
+   - Enter decimal values for Operand A and Operand B. Observe real-time 4-bit 8421 nibble badges appearing under each field.
+   - Click **Execute BCD Addition**. Inspect the Hero Result Card, digit-by-digit place value cards with $+6$ correction indicators, and the columnar arithmetic table.
+3. **BCD Subtraction via Complements:**
+   - Select the **BCD Subtraction (Complements)** mode or choose a quick subtraction preset (e.g., `85 − 32` or `32 − 85`).
+   - Choose comparison view mode: **Side-by-Side (9's & 10's)**, **9's Complement Only**, or **10's Complement Only**.
+   - Click **Execute BCD Subtraction**.
+   - Compare the 9's complement column (End-Around Carry for positive results, re-complemented for negative results) against the 10's complement column (Discard Carry for positive results, re-complemented for negative results).
+   - Use the **Copy BCD** and **Copy Decimal** buttons to copy outputs to the clipboard.
+

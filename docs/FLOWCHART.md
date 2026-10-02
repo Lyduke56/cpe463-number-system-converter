@@ -23,29 +23,39 @@ These flowcharts strictly follow traditional Computer Science and Engineering fl
 
 ## 1. Master System Flowchart
 
-Shows the overall execution lifecycle, user event traps, dynamic row rebuilds, preset injection, and central processing coordination.
+Shows the overall execution lifecycle, 3-tab segmented navigation routing, dynamic field rebuilds, preset injection, and engine coordination.
 
 ```mermaid
 flowchart TD
     %% Terminal
-    Start(["Start Application"]) --> InitState["Initialize App State:<br/>Inputs = 3, currentOperation = '+'"]
+    Start(["Start Application"]) --> InitState["Initialize App State:<br/>Default Tab = 'converter', Inputs = 3, Operation = '+'"]
     InitState --> SubRenderInit[["Call RenderInputs(3)"]]
-    SubRenderInit --> WaitEvent{{"Wait for User Event Trap"}}
+    SubRenderInit --> WaitEvent{{"Main Event Trap & Tab Router"}}
 
-    %% Manual Inputs / User Events (Trapezoids)
-    WaitEvent -->|"User Clicks Preset Button"| UserPreset[/Click Preset 1-5\]
-    WaitEvent -->|"User Modifies Input Count"| UserCount[/Input Desired Field Count\]
-    WaitEvent -->|"User Selects Operator"| UserOp[/Click +, -, *, / Button\]
-    WaitEvent -->|"User Types or Changes Base"| UserEdit[/Type Value or Select Radix\]
-    WaitEvent -->|"User Clicks Process"| UserCalc[/Click 'Calculate & Convert All'\]
+    %% Tab Navigation Routing
+    WaitEvent -->|"Click Tab 1"| NavTab1[/Switch to 'Converter & Calculator'\]
+    WaitEvent -->|"Click Tab 2"| NavTab2[/Switch to 'Complements & Subtraction'\]
+    WaitEvent -->|"Click Tab 3"| NavTab3[/Switch to 'BCD Arithmetic'\]
 
-    %% Preset Handling
+    NavTab1 --> ActivateTab1["Show #tab-panel-converter<br/>Update aria-selected, URL hash #converter"]
+    NavTab2 --> ActivateTab2["Show #tab-panel-complements<br/>Update aria-selected, URL hash #complements"]
+    NavTab3 --> ActivateTab3["Show #tab-panel-bcd<br/>Update aria-selected, URL hash #bcd"]
+
+    ActivateTab1 --> WaitEvent
+    ActivateTab2 --> WaitEvent
+    ActivateTab3 --> WaitEvent
+
+    %% Tab 1 Events
+    WaitEvent -->|"User Clicks Preset 1-5"| UserPreset[/Click Expression Preset\]
+    WaitEvent -->|"User Modifies Field Count"| UserCount[/Input Variable Field Count\]
+    WaitEvent -->|"User Edits Input/Base"| UserEdit[/Type Value or Select Radix\]
+    WaitEvent -->|"User Clicks Calculate"| UserCalc[/Click 'Calculate Expression'\]
+
     UserPreset --> ReadPresetData["Lookup Preset Data Array"]
     ReadPresetData --> SubRenderPreset[["Call RenderInputs(preset.length)"]]
     SubRenderPreset --> LoadPresetVals["Populate Base Selectors and Input Values"]
     LoadPresetVals --> AutoCalc[["Call ProcessCalculation()"]]
 
-    %% Count Update Handling
     UserCount --> ReadCountInput[/Read Count from Field\]
     ReadCountInput --> CheckMinCount{"Count >= 3?"}
     CheckMinCount -->|"Yes"| ValidCount["targetCount = Count"]
@@ -54,19 +64,32 @@ flowchart TD
     ClampMin --> SubRenderRows
     SubRenderRows --> WaitEvent
 
-    %% Operator Selection
-    UserOp --> SetOp["currentOperation = selectedOp"]
-    SetOp --> UpdateOpUI["Update Operator Button Active Classes"]
-    UpdateOpUI --> WaitEvent
-
-    %% Live Validation
     UserEdit --> SubValidateRow[["Call ValidateRow(rowIndex)"]]
     SubValidateRow --> WaitEvent
 
-    %% Calculation Execution
     UserCalc --> SubExecCalc[["Call ProcessCalculation()"]]
     AutoCalc --> SubExecCalc
     SubExecCalc --> WaitEvent
+
+    %% Tab 2 Events
+    WaitEvent -->|"User Computes Complement"| CompAction[/Click 'Calculate Complements'\]
+    WaitEvent -->|"User Computes Radix Subtraction"| SubAction[/Click 'Subtract Using Complements'\]
+    CompAction --> ExecComp[["Call ComputeComplements()"]]
+    SubAction --> ExecSub[["Call ProcessSubtraction()"]]
+    ExecComp --> WaitEvent
+    ExecSub --> WaitEvent
+
+    %% Tab 3 Events
+    WaitEvent -->|"User Executes BCD Add"| BcdAddAction[/Click 'Execute BCD Addition'\]
+    WaitEvent -->|"User Executes BCD Sub"| BcdSubAction[/Click 'Execute BCD Subtraction'\]
+    WaitEvent -->|"User Selects BCD Preset"| BcdPresetAction[/Click BCD Quick Preset\]
+    BcdAddAction --> ExecBcdAdd[["Call AddBCD(A, B)"]]
+    BcdSubAction --> ExecBcdSub[["Call BCDSubtract9s & BCDSubtract10s"]]
+    BcdPresetAction --> LoadBcdPresetData["Load Preset Operands & Mode"]
+    LoadBcdPresetData --> ExecBcdDispatch[["Dispatch BCD Operation"]]
+    ExecBcdAdd --> WaitEvent
+    ExecBcdSub --> WaitEvent
+    ExecBcdDispatch --> WaitEvent
 ```
 
 ---
@@ -364,3 +387,90 @@ flowchart TD
     NegResultR --> ConvertAllR
     ConvertAllR --> EndSubR(["End SubtractRadix()"])
 ```
+
+---
+
+## 9. BCD Addition with +6 Rule Flowchart (`AddBCD`)
+
+Details the 8421 BCD addition process including digit padding, 4-bit nibble binary addition, invalid BCD state detection ($>9$ or binary overflow $\ge 16$), automatic $+6$ ($0110_2$) correction, and multi-decade carry propagation.
+
+```mermaid
+flowchart TD
+    StartBcdAdd(["Start AddBCD(numA, numB, minWidth)"]) --> PadInputs["Align length N = max(len(A), len(B), minWidth)<br/>alignedA = PadLeft(A, N, '0')<br/>alignedB = PadLeft(B, N, '0')"]
+    PadInputs --> InitAdd["carry = 0<br/>resultDigits = [ ]<br/>nibbleSteps = [ ]"]
+
+    InitAdd --> LoopNibbles{{"For i = N-1 down to 0 (LSB to MSB)"}}
+    LoopNibbles --> GetDigits["digitA = int(alignedA[i])<br/>digitB = int(alignedB[i])<br/>carryIn = carry"]
+    GetDigits --> EncodeNibbles["nibbleA = DecimalDigitToBCD(digitA)<br/>nibbleB = DecimalDigitToBCD(digitB)"]
+    EncodeNibbles --> BinarySum["rawSum = digitA + digitB + carryIn<br/>rawBits = ToBinary4Bit(rawSum)"]
+
+    BinarySum --> CheckCorr{"rawSum > 9<br/>or carry generated?"}
+    CheckCorr -->|"Yes (Invalid BCD)"| ApplyCorr["correctionNeeded = true<br/>correctedSum = rawSum + 6<br/>resDigit = (rawSum + 6) & 0xF<br/>carryOut = 1"]
+    CheckCorr -->|"No (Valid BCD)"| NoCorr["correctionNeeded = false<br/>correctedSum = rawSum<br/>resDigit = rawSum<br/>carryOut = 0"]
+
+    ApplyCorr --> RecordStep["resNibble = DecimalDigitToBCD(resDigit)<br/>resultDigits.prepend(resDigit)<br/>Record Step(nibbleA, nibbleB, rawSum, corr, carryOut)"]
+    NoCorr --> RecordStep
+    RecordStep --> UpdateCarry["carry = carryOut"]
+    UpdateCarry --> DecrLoop["Next i (toward MSB)"]
+    DecrLoop --> LoopNibbles
+
+    LoopNibbles -->|"All N nibbles processed"| CheckEndCarry{"Final carry == 1?"}
+    CheckEndCarry -->|"Yes"| PrependOne["finalDigits = '1' + resultDigits.join('')<br/>endCarry = 1"]
+    CheckEndCarry -->|"No"| DirectDigits["finalDigits = resultDigits.join('')<br/>endCarry = 0"]
+
+    PrependOne --> BuildOutput["resultBCD = Map DecimalDigitToBCD(finalDigits)<br/>decimalValue = parseInt(finalDigits)"]
+    DirectDigits --> BuildOutput
+    BuildOutput --> RenderBcdUI[/"Render Hero Card, Nibble Walkthrough & Columnar Stack Table"/]
+    RenderBcdUI --> EndBcdAdd(["End AddBCD()"])
+```
+
+---
+
+## 10. BCD Subtraction via 9's Complement Flowchart (`BCDSubtract9sComplement`)
+
+Details BCD subtraction $A - B$ using 9's complement arithmetic, featuring End-Around Carry addition for positive results and re-complementing for negative results.
+
+```mermaid
+flowchart TD
+    StartSub9(["Start BCDSubtract9sComplement(A, B, minWidth)"]) --> AlignSub9["Pad A and B to length N<br/>alignedA = PadLeft(A, N, '0')<br/>alignedB = PadLeft(B, N, '0')"]
+    AlignSub9 --> Step1Comp9["Compute 9's Complement of B:<br/>For each digit b in alignedB: compD = 9 - b<br/>comp9Str = concatenated compD"]
+    Step1Comp9 --> BcdEncode9["Encode alignedA & comp9Str to 8421 BCD nibbles"]
+    BcdEncode9 --> CallBcdAdd9[["Call AddBCD(alignedA, comp9Str, N)"]]
+    CallBcdAdd9 --> InspectEndCarry9{"AddBCD endCarry == 1?<br/>(A >= B)"}
+
+    InspectEndCarry9 -->|"Yes (Positive: A >= B)"| EAC9["End-Around Carry Detected:<br/>Add 1 to intermediate sum digits via BCD Adder<br/>endAround = AddBCD(sumDigitsOnly, '1', N)"]
+    EAC9 --> PosFinal9["finalDigits = endAround.sumDigitsOnly<br/>sign = '+'<br/>decimalValue = +parseInt(finalDigits)"]
+
+    InspectEndCarry9 -->|"No (Negative: A < B)"| Recomp9["No End Carry Detected (In 9's Form):<br/>Re-complement intermediate sum using 9's complement:<br/>For each digit s in sumDigitsOnly: (9 - s)"]
+    Recomp9 --> NegFinal9["finalDigits = recomplemented digits<br/>sign = '−'<br/>decimalValue = -parseInt(finalDigits)"]
+
+    PosFinal9 --> RenderSub9[/"Render Verdict: 'End-Around Carry +1 Applied' & Final Result"/]
+    NegFinal9 --> RenderSub9
+    RenderSub9 --> EndSub9(["End BCDSubtract9sComplement()"])
+```
+
+---
+
+## 11. BCD Subtraction via 10's Complement Flowchart (`BCDSubtract10sComplement`)
+
+Details BCD subtraction $A - B$ using 10's complement arithmetic, featuring End Carry Discarding for positive results and 10's complement re-complementing for negative results.
+
+```mermaid
+flowchart TD
+    StartSub10(["Start BCDSubtract10sComplement(A, B, minWidth)"]) --> AlignSub10["Pad A and B to length N<br/>alignedA = PadLeft(A, N, '0')<br/>alignedB = PadLeft(B, N, '0')"]
+    AlignSub10 --> Step1Comp10["Compute 10's Complement of B:<br/>comp9Str = 9's complement of alignedB<br/>comp10Str = AddBCD(comp9Str, '1', N).sumDigitsOnly"]
+    Step1Comp10 --> BcdEncode10["Encode alignedA & comp10Str to 8421 BCD nibbles"]
+    BcdEncode10 --> CallBcdAdd10[["Call AddBCD(alignedA, comp10Str, N)"]]
+    CallBcdAdd10 --> InspectEndCarry10{"AddBCD endCarry == 1?<br/>(A >= B)"}
+
+    InspectEndCarry10 -->|"Yes (Positive: A >= B)"| Discard10["End Carry Generated = 1:<br/>Discard End Carry!<br/>Remaining N digits form true magnitude"]
+    Discard10 --> PosFinal10["finalDigits = additionResult.sumDigitsOnly<br/>sign = '+'<br/>decimalValue = +parseInt(finalDigits)"]
+
+    InspectEndCarry10 -->|"No (Negative: A < B)"| Recomp10["No End Carry Generated = 0 (In 10's Form):<br/>Re-complement intermediate sum using 10's complement:<br/>inter9 = 9's comp of sumDigitsOnly<br/>finalDigits = AddBCD(inter9, '1', N).sumDigitsOnly"]
+    Recomp10 --> NegFinal10["finalDigits = recomplemented digits<br/>sign = '−'<br/>decimalValue = -parseInt(finalDigits)"]
+
+    PosFinal10 --> RenderSub10[/"Render Verdict: 'End Carry Discarded' & Final Result"/]
+    NegFinal10 --> RenderSub10
+    RenderSub10 --> EndSub10(["End BCDSubtract10sComplement()"])
+```
+

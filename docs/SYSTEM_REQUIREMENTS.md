@@ -2,8 +2,8 @@
 ## Number System Converter & Unified Algebraic Arithmetic Engine
 **Course / Subject:** CPE 463 — Computer Engineering  
 **Project Identifier:** `Lyduke56/cpe463-number-system-converter`  
-**Document Version:** 1.0.0  
-**Date:** September 19, 2026  
+**Document Version:** 1.2.0  
+**Date:** October 2, 2026  
 **Status:** Approved / Released  
 
 ---
@@ -36,25 +36,28 @@ The system is a standalone, client-side, browser-native mathematical utility eng
 4. Provide step-by-step bottom-up reduction trees tracing the decimal evaluation pipeline and multi-base substitutions.
 5. Compute $(r-1)$'s and $r$'s complements for all four bases with auto or custom digit bit-widths.
 6. Execute binary/octal/decimal/hexadecimal subtractions via both $(r-1)$'s complement (with end-around carry) and $r$'s complement (with discard carry) side-by-side.
+7. Execute BCD (8421 code) addition digit-by-digit with automated $+6$ ($0110_2$) correction rule, carry-out propagation, and columnar hardware-level tables.
+8. Execute BCD subtraction using both 9's complement (with end-around carry) and 10's complement (with discard carry) side-by-side, complete with negative outcome re-complementing and comparative analysis.
 
 ---
 
 ## 2. Overall Description
 
 ### 2.1 Product Perspective & Context
-The application operates entirely within the client runtime environment (web browser). It does not require a remote server, third-party backend, cloud API, or package manager. The architecture comprises a presentation tier ([`index.html`](../index.html)), a styling and layout tier ([`style.css`](../style.css)), and a computational logic tier ([`script.js`](../script.js)).
+The application operates entirely within the client runtime environment (web browser). It does not require a remote server, third-party backend, cloud API, or package manager. The architecture comprises a presentation tier ([`index.html`](../index.html)), a styling and layout tier ([`style.css`](../style.css)), and a computational logic tier ([`script.js`](../script.js)). The application features a 3-tab segmented navigation system dividing functionality into: **Converter & Calculator**, **Complements & Subtraction**, and **BCD Arithmetic**.
 
 ### 2.2 System Architecture Diagram
 
 ```mermaid
 graph TD
-    UI[User Interface - HTML5 / CSS3] -->|Events & Text Streams| Dispatcher[Event Dispatcher & Controller]
+    UI[User Interface - HTML5 / CSS3] -->|Events & Tab Navigation| Dispatcher[Tab Router & Event Dispatcher]
     
     subgraph "Core Engine (script.js)"
-        Dispatcher -->|Input Change| LiveConv[Live Multi-Base Matrix Engine]
-        Dispatcher -->|Calculate Action| Pipeline[Arithmetic Pipeline]
-        Dispatcher -->|Complement Action| CompEngine[Radix Complement Engine]
-        Dispatcher -->|Subtract Action| SubEngine[Complement Subtraction Engine]
+        Dispatcher -->|Tab 1: Input Change| LiveConv[Live Multi-Base Matrix Engine]
+        Dispatcher -->|Tab 1: Calculate Action| Pipeline[Arithmetic Pipeline]
+        Dispatcher -->|Tab 2: Complement Action| CompEngine[Radix Complement Engine]
+        Dispatcher -->|Tab 2: Subtract Action| SubEngine[Complement Subtraction Engine]
+        Dispatcher -->|Tab 3: BCD Arithmetic| BCDEngine[BCD 8421 Engine]
 
         subgraph "Arithmetic Pipeline"
             Pipeline --> Tokenizer[Lexical Tokenizer & Glyph Normalizer]
@@ -63,12 +66,19 @@ graph TD
             ASTBuilder --> StepReducer[Recursive Bottom-Up Reducer]
             StepReducer --> BaseFormatter[IEEE-754 Multi-Base Formatter]
         end
+
+        subgraph "BCD 8421 Engine"
+            BCDEngine --> BCDAdder[Nibble Adder with +6 Correction]
+            BCDEngine --> BCDComp9[BCD 9's Comp Subtractor EAC]
+            BCDEngine --> BCDComp10[BCD 10's Comp Subtractor Discard]
+        end
     end
 
     LiveConv --> DOMOutput[DOM Render & Visual Output Nodes]
     BaseFormatter --> DOMOutput
     CompEngine --> DOMOutput
     SubEngine --> DOMOutput
+    BCDEngine --> DOMOutput
 ```
 
 ### 2.3 User Classes & Personas
@@ -314,6 +324,52 @@ graph TD
 
 ---
 
+### Module 9: Binary-Coded Decimal (BCD) Arithmetic Engine
+
+- **`FR-901` [8421 BCD Encoding & Strict Decimal Validation]:**
+  - The system **MUST** encode each decimal digit $d \in \{0, \dots, 9\}$ into standard 4-bit Binary-Coded Decimal (8421 code: $0000_2$ to $1001_2$).
+  - Nibble bit patterns $1010_2$ through $1111_2$ ($10$–$15$) are invalid states and **MUST** trigger BCD correction when produced as intermediate sums.
+  - The system **MUST** validate that BCD input operands contain exclusively positive decimal digits ($0-9$). Any alphabetic or symbol characters **MUST** trigger inline validation warnings.
+- **`FR-902` [Real-Time Interactive BCD Previews]:**
+  - The UI **MUST** dynamically render live 4-bit nibble pill badges under both Operand A and Operand B inputs synchronously as the user types.
+  - Each nibble pill **MUST** display the decimal digit and its 4-bit binary equivalent with hover tooltips.
+- **`FR-903` [BCD Addition Engine with +6 Correction Rule]:**
+  - The system **MUST** compute BCD addition digit-by-digit from least significant (Units) to most significant digit with carry propagation.
+  - For each digit position:
+    - Raw 4-bit binary sum: $S_{raw} = A_i + B_i + C_{in}$.
+    - If $S_{raw} > 9$ or a 4-bit adder carry out is generated ($S_{raw} \ge 16$):
+      - Add $+6$ ($0110_2$) correction: $S_{corrected} = S_{raw} + 6$.
+      - Result nibble: $(S_{raw} + 6) \pmod{16}$ (low 4 bits, bitwise AND `0x0F`).
+      - Set Carry Out $C_{out} = 1$.
+    - Else:
+      - No correction applied ($+0000_2$).
+      - Result nibble: $S_{raw}$.
+      - Set Carry Out $C_{out} = 0$.
+  - If final carry out from the most significant nibble $= 1$, the system **MUST** prepend an extra BCD digit '1' ($0001_2$) representing the overflow decade.
+- **`FR-904` [BCD Subtraction via 9's Complement Engine]:**
+  - The system **MUST** execute BCD subtraction $A - B$ using 9's complement arithmetic:
+    - Compute 9's complement of subtrahend $B$: $B'_{9s} = (10^N - 1) - B$ by subtracting each digit from 9.
+    - Execute BCD addition $A + B'_{9s}$ using the BCD adder with $+6$ correction.
+    - **End-Around Carry Check:**
+      - If End Carry $= 1$ ($A \ge B$): Result is positive. Apply End-Around Carry by adding $+1$ to the BCD sum $\rightarrow$ Result is $+ \text{Sum}$.
+      - If End Carry $= 0$ ($A < B$): Result is negative and in 9's complement form. Re-complement the sum using 9's complement $\rightarrow$ Result is $- \text{Sum}$.
+- **`FR-905` [BCD Subtraction via 10's Complement Engine]:**
+  - The system **MUST** execute BCD subtraction $A - B$ using 10's complement arithmetic:
+    - Compute 10's complement of subtrahend $B$: $B'_{10s} = 9's\text{Comp}(B) + 1 = 10^N - B$.
+    - Execute BCD addition $A + B'_{10s}$ using the BCD adder with $+6$ correction.
+    - **Discard Carry Check:**
+      - If End Carry $= 1$ ($A \ge B$): Result is positive. Discard the end carry $\rightarrow$ Result is $+ \text{Sum}$.
+      - If End Carry $= 0$ ($A < B$): Result is negative and in 10's complement form. Re-complement the sum using 10's complement $\rightarrow$ Result is $- \text{Sum}$.
+- **`FR-906` [BCD Subtraction Side-by-Side Comparative UI]:**
+  - The UI **MUST** display both 9's complement and 10's complement methods simultaneously side-by-side with toggleable view modes ("Side-by-Side", "9's Only", "10's Only").
+  - The UI **MUST** feature color-coded verdict banners explaining the carry outcome (End-around carry vs Discard carry, Re-complementing).
+  - The UI **MUST** provide a comparative takeaways summary detailing fundamental operational differences between diminished-radix and radix complement handling in BCD.
+- **`FR-907` [BCD Presets, Utility Controls & Columnar Table]:**
+  - The system **MUST** provide 5 addition presets (`5+3`, `7+6`, `48+35`, `687+549`, `999+1`) and 5 subtraction presets (`85-32`, `32-85`, `450-186`, `125-379`, `77-77`).
+  - The UI **MUST** support operand swapping (⇄), field clearing (✕), auto/manual digit alignment, one-click clipboard copying, and render a synchronized multi-row columnar arithmetic table.
+
+---
+
 ## 5. Non-Functional Requirements (NFR)
 
 ### 5.1 Performance & Latency Requirements
@@ -400,5 +456,13 @@ graph TD
 | **`FR-501`** | Complements for all 4 bases | [`script.js`](../script.js) (`computeComplements`) | Test BIN 1s/2s, OCT 7s/8s, DEC 9s/10s, HEX 15s/16s |
 | **`FR-601`** | Subtraction via complements | [`script.js`](../script.js) (`subtractViaComplements`) | Test end-around carry ($M > S$) & negative cases ($M < S$) |
 | **`FR-703`** | Built-in test presets (1–5) | [`script.js`](../script.js) (`loadPreset`) | Click all 5 presets; verify calculated output against README |
+| **`FR-901`** | 8421 BCD encoding & validation | [`script.js`](../script.js) (`decimalDigitToBCD`, `validateBCDInput`) | Unit test with valid (0-9) and invalid non-decimal inputs |
+| **`FR-902`** | Real-time live BCD nibble previews | [`script.js`](../script.js) (`updateBCDInputPreview`) | Keystroke verification under Operand A & B fields |
+| **`FR-903`** | BCD Addition with +6 correction rule | [`script.js`](../script.js) (`addBCD`) | Unit tests with sums $\le 9$, $> 9$, and cascading carries |
+| **`FR-904`** | BCD Subtraction via 9's complement | [`script.js`](../script.js) (`bcdSubtract9sComplement`) | Verify End-Around Carry ($A \ge B$) and re-complementing ($A < B$) |
+| **`FR-905`** | BCD Subtraction via 10's complement | [`script.js`](../script.js) (`bcdSubtract10sComplement`) | Verify carry discard ($A \ge B$) and re-complementing ($A < B$) |
+| **`FR-906`** | Subtraction side-by-side comparative UI | [`script.js`](../script.js) (`renderBCDSubtractionResult`, `switchBcdSubView`) | UI test for comparative cards, verdicts, and view toggle |
+| **`FR-907`** | BCD test presets & utility buttons | [`script.js`](../script.js) (`loadBcdPreset`, `copyToClipboard`) | Test all 10 presets, operand swap, clear, copy buttons |
 | **`NFR-PERF-01`** | < 16ms input responsiveness | [`script.js`](../script.js) (`EventListener`) | Chrome DevTools Performance profiler |
 | **`NFR-SEC-02`** | No `eval()` usage | [`script.js`](../script.js) | Static code grep / code review |
+

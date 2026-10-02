@@ -1,7 +1,7 @@
 # Standard Programming Flowcharts & Architectural Diagrams
 ## CPE463 - Number System Converter & Unified Arithmetic Calculator
 
-**File Reference:** [`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js) | [`index.html`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/index.html) | [`PSEUDOCODE.md`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/PSEUDOCODE.md) | **Visual Viewer:** [`flowchart.html`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/flowchart.html)
+**File Reference:** [`script.js`](../script.js) | [`index.html`](../index.html) | [`PSEUDOCODE.md`](PSEUDOCODE.md)
 
 ---
 

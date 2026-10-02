@@ -2,7 +2,7 @@
 ## System Pseudocode & Algorithmic Documentation
 
 **Course / Project:** CPE463 - Number System Converter  
-**File Reference:** [`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js) | [`index.html`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/index.html) | [`style.css`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/style.css)
+**File Reference:** [`script.js`](../script.js) | [`index.html`](../index.html) | [`style.css`](../style.css)
 
 ---
 

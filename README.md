@@ -83,19 +83,21 @@ cpe463-number-system-converter/
 ├── index.html              # Accessible HTML5 structure and layout
 ├── style.css               # Responsive styling, color tokens, and layout components
 ├── script.js               # Core conversion, parsing, AST evaluation, and UI logic
-├── flowchart.html          # Interactive visual flowchart viewer
-├── FLOWCHART.md            # ANSI/ISO 5807 flowchart diagrams & system flowcharts
-├── PSEUDOCODE.md           # Formal algorithmic pseudocode specifications
-├── SYSTEM_REQUIREMENTS.md  # Software System Requirements Specification (SRS)
-└── README.md               # Project documentation and user manual
+├── README.md               # Project documentation and user manual
+├── .gitignore              # Git ignore rules
+├── docs/                   # Documentation & specifications
+│   ├── FLOWCHART.md        # ANSI/ISO 5807 flowchart diagrams & system flowcharts
+│   ├── PSEUDOCODE.md       # Formal algorithmic pseudocode specifications
+│   └── SYSTEM_REQUIREMENTS.md  # Software System Requirements Specification (SRS)
+└── previous-builds/        # Previous submission PDFs (gitignored)
 ```
 
 ### Component Details
-- **[`index.html`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/index.html):**
+- **[`index.html`](index.html):**
   Defines semantic containers including the control panel, quick preset buttons, expression input bar, virtual keypad, dynamic input rows container, global error banner, step-by-step accordion breakdown, and final multi-base output tiles.
-- **[`style.css`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/style.css):**
+- **[`style.css`](style.css):**
   Provides a clean, modern design system built with CSS custom properties (variables), responsive flexbox and grid structures, dark/light contrast elements, state indicators (success, error), and subtle transitions.
-- **[`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js):**
+- **[`script.js`](script.js):**
   Houses the complete client-side architecture:
   - Base conversion utilities (`parseToDecimal`, `formatBase`, `isValidNumber`)
   - Dynamic DOM rendering and event listeners
@@ -103,8 +105,12 @@ cpe463-number-system-converter/
   - Dijkstra's Shunting-yard algorithm implementation
   - Abstract Syntax Tree (AST) builder and recursive bottom-up step reducer
   - Preset loader and error banner dispatcher
-- **[`SYSTEM_REQUIREMENTS.md`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/SYSTEM_REQUIREMENTS.md):**
+- **[`docs/SYSTEM_REQUIREMENTS.md`](docs/SYSTEM_REQUIREMENTS.md):**
   Formal IEEE 830 / ISO/IEC/IEEE 29148 Software System Requirements Specification outlining functional, non-functional, interface, and hardware/software environment constraints.
+- **[`docs/FLOWCHART.md`](docs/FLOWCHART.md):**
+  Standard programming flowcharts using Mermaid syntax for easy copy-pasting into Mermaid-compatible renderers.
+- **[`docs/PSEUDOCODE.md`](docs/PSEUDOCODE.md):**
+  Formal algorithmic pseudocode for all system modules.
 
 ---
 
@@ -188,7 +194,7 @@ The application includes 5 preset configurations:
 The project is a standalone, client-side web application requiring no external compilers, package managers, or server runtimes.
 
 1. Clone or download the project repository.
-2. Open [index.html](file:///c:/Users/L64X17W17/cpe463_act1/index.html) directly in any modern web browser (Google Chrome, Mozilla Firefox, Microsoft Edge, Safari).
+2. Open [index.html](index.html) directly in any modern web browser (Google Chrome, Mozilla Firefox, Microsoft Edge, Safari).
 
 ### 7.2 Usage Instructions
 1. **Specify Input Count:** Enter the desired number of inputs (minimum 3) in the top control panel and click **Update Fields**, or select one of the **Quick Test Presets**.

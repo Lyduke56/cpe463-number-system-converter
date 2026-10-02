@@ -42,7 +42,7 @@ The system is a standalone, client-side, browser-native mathematical utility eng
 ## 2. Overall Description
 
 ### 2.1 Product Perspective & Context
-The application operates entirely within the client runtime environment (web browser). It does not require a remote server, third-party backend, cloud API, or package manager. The architecture comprises a presentation tier ([`index.html`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/index.html)), a styling and layout tier ([`style.css`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/style.css)), and a computational logic tier ([`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js)).
+The application operates entirely within the client runtime environment (web browser). It does not require a remote server, third-party backend, cloud API, or package manager. The architecture comprises a presentation tier ([`index.html`](../index.html)), a styling and layout tier ([`style.css`](../style.css)), and a computational logic tier ([`script.js`](../script.js)).
 
 ### 2.2 System Architecture Diagram
 
@@ -346,7 +346,7 @@ graph TD
 
 ### 5.4 Maintainability & Code Quality
 - **`NFR-MNT-01` [Separation of Concerns]:**
-  - Codebase **SHALL** maintain strict separation between markup ([`index.html`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/index.html)), presentation rules ([`style.css`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/style.css)), and algorithm execution ([`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js)).
+  - Codebase **SHALL** maintain strict separation between markup ([`index.html`](../index.html)), presentation rules ([`style.css`](../style.css)), and algorithm execution ([`script.js`](../script.js)).
 - **`NFR-MNT-02` [Modular Architecture]:**
   - Logic routines (lexing, RPN conversion, AST evaluation, complement math) **SHALL** be organized as cohesive, self-documenting functions with clear parameter contracts.
 - **`NFR-MNT-03` [Self-Contained Portability]:**
@@ -387,18 +387,18 @@ graph TD
 
 | Req ID | Requirement Description | Implementing Source File & Functions | Verification Method |
 | :--- | :--- | :--- | :--- |
-| **`FR-101`** | Dynamic variable row scaling ($N \ge 3$) | [`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js) (`renderInputs`, `updateInputCount`) | Manual UI test with counts: 3, 5, 10 |
-| **`FR-102`** | 4-Base validation (2, 8, 10, 16) | [`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js) (`isValidNumber`, `BASE_REGEX`) | Unit test with valid/invalid characters per base |
-| **`FR-104`** | Live 4-base conversion matrix | [`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js) (`updateRowConversions`, `parseToDecimal`, `formatBase`) | Real-time typing verification in row fields |
-| **`FR-201`** | Tokenization & Unicode normalization | [`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js) (`tokenizeExpression`) | Test string containing `×`, `÷`, `−` |
-| **`FR-202`** | Implicit multiplication insertion | [`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js) (`insertImplicitMultiplication`) | Test `2A`, `(A+B)(C+D)`, `A B` |
-| **`FR-204`** | Operator Precedence & Associativity | [`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js) (`OPERATOR_PRECEDENCE`, `shuntingYard`) | Verify `A + B * C` evaluates as `A + (B * C)` |
-| **`FR-301`** | AST generation from RPN | [`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js) (`buildAST`) | Verify tree structure on nested expressions |
-| **`FR-303`** | Bottom-Up reduction engine | [`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js) (`reduceASTStepByStep`) | Verify intermediate steps logged match manual computation |
-| **`FR-402`** | Fractional base conversion | [`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js) (`formatBaseFractional`) | Test fractional inputs: $10.5_{10} = 1010.1_2$ |
-| **`FR-405`** | Division by zero detection | [`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js) (`evaluateASTNode`) | Test expression `A / 0` |
-| **`FR-501`** | Complements for all 4 bases | [`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js) (`computeComplements`) | Test BIN 1s/2s, OCT 7s/8s, DEC 9s/10s, HEX 15s/16s |
-| **`FR-601`** | Subtraction via complements | [`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js) (`subtractViaComplements`) | Test end-around carry ($M > S$) & negative cases ($M < S$) |
-| **`FR-703`** | Built-in test presets (1–5) | [`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js) (`loadPreset`) | Click all 5 presets; verify calculated output against README |
-| **`NFR-PERF-01`** | < 16ms input responsiveness | [`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js) (`EventListener`) | Chrome DevTools Performance profiler |
-| **`NFR-SEC-02`** | No `eval()` usage | [`script.js`](file:///c:/Users/Clyde%20Justine%20Rosal/Desktop/Project%20Stockify/cpe463-number-system-converter/script.js) | Static code grep / code review |
+| **`FR-101`** | Dynamic variable row scaling ($N \ge 3$) | [`script.js`](../script.js) (`renderInputs`, `updateInputCount`) | Manual UI test with counts: 3, 5, 10 |
+| **`FR-102`** | 4-Base validation (2, 8, 10, 16) | [`script.js`](../script.js) (`isValidNumber`, `BASE_REGEX`) | Unit test with valid/invalid characters per base |
+| **`FR-104`** | Live 4-base conversion matrix | [`script.js`](../script.js) (`updateRowConversions`, `parseToDecimal`, `formatBase`) | Real-time typing verification in row fields |
+| **`FR-201`** | Tokenization & Unicode normalization | [`script.js`](../script.js) (`tokenizeExpression`) | Test string containing `×`, `÷`, `−` |
+| **`FR-202`** | Implicit multiplication insertion | [`script.js`](../script.js) (`insertImplicitMultiplication`) | Test `2A`, `(A+B)(C+D)`, `A B` |
+| **`FR-204`** | Operator Precedence & Associativity | [`script.js`](../script.js) (`OPERATOR_PRECEDENCE`, `shuntingYard`) | Verify `A + B * C` evaluates as `A + (B * C)` |
+| **`FR-301`** | AST generation from RPN | [`script.js`](../script.js) (`buildAST`) | Verify tree structure on nested expressions |
+| **`FR-303`** | Bottom-Up reduction engine | [`script.js`](../script.js) (`reduceASTStepByStep`) | Verify intermediate steps logged match manual computation |
+| **`FR-402`** | Fractional base conversion | [`script.js`](../script.js) (`formatBaseFractional`) | Test fractional inputs: $10.5_{10} = 1010.1_2$ |
+| **`FR-405`** | Division by zero detection | [`script.js`](../script.js) (`evaluateASTNode`) | Test expression `A / 0` |
+| **`FR-501`** | Complements for all 4 bases | [`script.js`](../script.js) (`computeComplements`) | Test BIN 1s/2s, OCT 7s/8s, DEC 9s/10s, HEX 15s/16s |
+| **`FR-601`** | Subtraction via complements | [`script.js`](../script.js) (`subtractViaComplements`) | Test end-around carry ($M > S$) & negative cases ($M < S$) |
+| **`FR-703`** | Built-in test presets (1–5) | [`script.js`](../script.js) (`loadPreset`) | Click all 5 presets; verify calculated output against README |
+| **`NFR-PERF-01`** | < 16ms input responsiveness | [`script.js`](../script.js) (`EventListener`) | Chrome DevTools Performance profiler |
+| **`NFR-SEC-02`** | No `eval()` usage | [`script.js`](../script.js) | Static code grep / code review |

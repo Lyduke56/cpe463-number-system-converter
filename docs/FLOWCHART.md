@@ -5,472 +5,227 @@
 
 ---
 
-## Standard Flowchart Symbols Legend (ANSI / ISO 5807)
+## Unified Master System Flowchart
 
-These flowcharts strictly follow traditional Computer Science and Engineering flowchart conventions:
-
-| Symbol Shape | Geometric Form | Mermaid Syntax | Standard Programming Function |
-| :--- | :--- | :--- | :--- |
-| **Terminal / Ellipse** | Oval / Stadium | `([Start / End])` | Indicates Start, End, Return, or Halt of a program or function. |
-| **Manual Input** | Trapezoid | `[/User Action\]` | Represents manual human input (e.g., clicking buttons, typing in text fields). |
-| **Input / Output (I/O)** | Parallelogram | `[/Read or Print/]` | Represents reading data (variables, DOM) or displaying outputs/results to the user. |
-| **Process** | Rectangle | `[Operation]` | Represents computational operations, variable assignments, and arithmetic. |
-| **Decision** | Diamond | `{Condition?}` | Represents conditional branching (`IF...THEN...ELSE` or `SWITCH`) with `Yes`/`No` paths. |
-| **Preparation / Loop** | Hexagon | `{{For Loop Setup}}` | Represents iteration setup, loop counters, and index initialization. |
-| **Predefined Process** | Double-Bar Rectangle | `[[Function Call]]` | Represents invocation of another modular function or subroutine. |
-
----
-
-## 1. Master System Flowchart
-
-Shows the overall execution lifecycle, 3-tab segmented navigation routing, dynamic field rebuilds, preset injection, and engine coordination.
+> [!NOTE]
+> The diagram below represents the complete, unified architectural and algorithmic flowchart for the entire application across all three subsystems: **Tab 1 (Converter & Calculator Engine)**, **Tab 2 (Radix & Diminished Radix Complements and Subtraction)**, and **Tab 3 (BCD 8421 Arithmetic with +6 Rule & 9's/10's Complement Subtraction)**.
+>
+> You can copy this single code block directly into any Mermaid-compatible viewer, Markdown renderer, or Mermaid Live Editor.
 
 ```mermaid
 flowchart TD
-    %% Terminal
-    Start(["Start Application"]) --> InitState["Initialize App State:<br/>Default Tab = 'converter', Inputs = 3, Operation = '+'"]
-    InitState --> SubRenderInit[["Call RenderInputs(3)"]]
-    SubRenderInit --> WaitEvent{{"Main Event Trap & Tab Router"}}
+    %% =========================================================================
+    %% CPE 463: NUMBER SYSTEM CONVERTER & ARITHMETIC ENGINE - UNIFIED FLOWCHART
+    %% =========================================================================
 
-    %% Tab Navigation Routing
-    WaitEvent -->|"Click Tab 1"| NavTab1[/Switch to 'Converter & Calculator'\]
-    WaitEvent -->|"Click Tab 2"| NavTab2[/Switch to 'Complements & Subtraction'\]
-    WaitEvent -->|"Click Tab 3"| NavTab3[/Switch to 'BCD Arithmetic'\]
+    subgraph SEC1_LIFECYCLE ["1. System Initialization and 3-Tab Navigation Router"]
+        Start(["Start Application"]) --> InitState["Initialize Application State:<br/>Inputs = 3, Active Tab = 'converter', BCD Mode = 'add'"]
+        InitState --> RenderDefaultRows[["RenderInputs(3)"]]
+        RenderDefaultRows --> MainEventLoop{{"Main User Event Trap Loop"}}
 
-    NavTab1 --> ActivateTab1["Show #tab-panel-converter<br/>Update aria-selected, URL hash #converter"]
-    NavTab2 --> ActivateTab2["Show #tab-panel-complements<br/>Update aria-selected, URL hash #complements"]
-    NavTab3 --> ActivateTab3["Show #tab-panel-bcd<br/>Update aria-selected, URL hash #bcd"]
+        %% Tab Navigation
+        MainEventLoop -->|"Click Tab 1"| ClickTab1[/Select 'Converter and Calculator' Tab\]
+        MainEventLoop -->|"Click Tab 2"| ClickTab2[/Select 'Complements and Subtraction' Tab\]
+        MainEventLoop -->|"Click Tab 3"| ClickTab3[/Select 'BCD Arithmetic' Tab\]
 
-    ActivateTab1 --> WaitEvent
-    ActivateTab2 --> WaitEvent
-    ActivateTab3 --> WaitEvent
+        ClickTab1 --> ShowPanel1["Activate #tab-panel-converter<br/>Update ARIA selected and URL hash #converter"]
+        ClickTab2 --> ShowPanel2["Activate #tab-panel-complements<br/>Update ARIA selected and URL hash #complements"]
+        ClickTab3 --> ShowPanel3["Activate #tab-panel-bcd<br/>Update ARIA selected and URL hash #bcd"]
 
-    %% Tab 1 Events
-    WaitEvent -->|"User Clicks Preset 1-5"| UserPreset[/Click Expression Preset\]
-    WaitEvent -->|"User Modifies Field Count"| UserCount[/Input Variable Field Count\]
-    WaitEvent -->|"User Edits Input/Base"| UserEdit[/Type Value or Select Radix\]
-    WaitEvent -->|"User Clicks Calculate"| UserCalc[/Click 'Calculate Expression'\]
+        ShowPanel1 --> MainEventLoop
+        ShowPanel2 --> MainEventLoop
+        ShowPanel3 --> MainEventLoop
+    end
 
-    UserPreset --> ReadPresetData["Lookup Preset Data Array"]
-    ReadPresetData --> SubRenderPreset[["Call RenderInputs(preset.length)"]]
-    SubRenderPreset --> LoadPresetVals["Populate Base Selectors and Input Values"]
-    LoadPresetVals --> AutoCalc[["Call ProcessCalculation()"]]
+    subgraph SEC2_TAB1_CONVERTER ["2. Tab 1: Multi-Base Converter and Calculator Pipeline"]
+        MainEventLoop -->|"Click Preset 1-5"| PresetClick[/Select Expression Preset\]
+        MainEventLoop -->|"Change Field Count"| CountChange[/Enter Input Count N >= 3\]
+        MainEventLoop -->|"Row Input Event"| RowInput[/Type Number or Change Radix\]
+        MainEventLoop -->|"Click Calculate"| CalcClick[/Click 'Calculate and Convert All'\]
 
-    UserCount --> ReadCountInput[/Read Count from Field\]
-    ReadCountInput --> CheckMinCount{"Count >= 3?"}
-    CheckMinCount -->|"Yes"| ValidCount["targetCount = Count"]
-    CheckMinCount -->|"No"| ClampMin["targetCount = 3"]
-    ValidCount --> SubRenderRows[["Call RenderInputs(targetCount)"]]
-    ClampMin --> SubRenderRows
-    SubRenderRows --> WaitEvent
+        PresetClick --> FetchPresetData["Lookup Preset Inputs and Formula"]
+        FetchPresetData --> BuildPresetInputs[["RenderInputs(preset.length)"]]
+        BuildPresetInputs --> PopulatePresetValues["Populate Selectors and Value Fields"]
+        PopulatePresetValues --> StartCalculation
 
-    UserEdit --> SubValidateRow[["Call ValidateRow(rowIndex)"]]
-    SubValidateRow --> WaitEvent
+        CountChange --> CheckCountThreshold{"Count >= 3?"}
+        CheckCountThreshold -->|Yes| RebuildInputRows[["RenderInputs(Count)"]]
+        CheckCountThreshold -->|No| ClampMinCount["Display Warning: Minimum 3 Inputs Required"]
+        RebuildInputRows --> MainEventLoop
+        ClampMinCount --> MainEventLoop
 
-    UserCalc --> SubExecCalc[["Call ProcessCalculation()"]]
-    AutoCalc --> SubExecCalc
-    SubExecCalc --> WaitEvent
+        RowInput --> ValidateSingleRow[["Call IsValidNumber(value, base)"]]
+        ValidateSingleRow --> IsRowValid{"Valid for Selected Radix?"}
+        IsRowValid -->|Yes| ComputeRowMatrix[["Call ConvertToAllBases(decimalVal)"]]
+        IsRowValid -->|No| HighlightRowError["Mark Field Red and Show Syntax Error"]
+        ComputeRowMatrix --> RenderRowTiles["Render Per-Input 4-Base Conversion Matrix"]
+        RenderRowTiles --> MainEventLoop
+        HighlightRowError --> MainEventLoop
 
-    %% Tab 2 Events
-    WaitEvent -->|"User Computes Complement"| CompAction[/Click 'Calculate Complements'\]
-    WaitEvent -->|"User Computes Radix Subtraction"| SubAction[/Click 'Subtract Using Complements'\]
-    CompAction --> ExecComp[["Call ComputeComplements()"]]
-    SubAction --> ExecSub[["Call ProcessSubtraction()"]]
-    ExecComp --> WaitEvent
-    ExecSub --> WaitEvent
+        CalcClick --> StartCalculation["Enter ProcessCalculation()"]
+        StartCalculation --> ValidateAllInputs{"Are All Input Rows Valid?"}
+        ValidateAllInputs -->|No| ShowGlobalError["Display Global Error Banner"]
+        ValidateAllInputs -->|Yes| TokenizeFormula[["Call TokenizeExpression(formulaString)"]]
 
-    %% Tab 3 Events
-    WaitEvent -->|"User Executes BCD Add"| BcdAddAction[/Click 'Execute BCD Addition'\]
-    WaitEvent -->|"User Executes BCD Sub"| BcdSubAction[/Click 'Execute BCD Subtraction'\]
-    WaitEvent -->|"User Selects BCD Preset"| BcdPresetAction[/Click BCD Quick Preset\]
-    BcdAddAction --> ExecBcdAdd[["Call AddBCD(A, B)"]]
-    BcdSubAction --> ExecBcdSub[["Call BCDSubtract9s & BCDSubtract10s"]]
-    BcdPresetAction --> LoadBcdPresetData["Load Preset Operands & Mode"]
-    LoadBcdPresetData --> ExecBcdDispatch[["Dispatch BCD Operation"]]
-    ExecBcdAdd --> WaitEvent
-    ExecBcdSub --> WaitEvent
-    ExecBcdDispatch --> WaitEvent
+        TokenizeFormula --> ValidateTokens{"Tokenizer Error Free?"}
+        ValidateTokens -->|No| ShowGlobalError
+        ValidateTokens -->|Yes| ShuntingYardParser[["Call ShuntingYard(tokens) - Infix to RPN"]]
+
+        ShuntingYardParser --> ConstructAST[["Call BuildAST(rpnQueue)"]]
+        ConstructAST --> ValidateAST{"Valid Syntax Tree?"}
+        ValidateAST -->|No| ShowGlobalError
+        ValidateAST -->|Yes| BottomUpEvaluation[["Call ReduceASTStepByStep(astRoot)"]]
+
+        BottomUpEvaluation --> CheckDivByZero{"Division by Zero Encountered?"}
+        CheckDivByZero -->|Yes| ShowDivZeroAlert["Display Math Error: Division by Zero Forbidden"]
+        CheckDivByZero -->|No| FormatOutputs[["Call FormatBase() for Bases 2, 8, 10, 16"]]
+
+        FormatOutputs --> RenderCalcResults["Render Formatted Multi-Base Result Tiles<br/>and Expandable Step-by-Step Reduction Tree"]
+        RenderCalcResults --> MainEventLoop
+        ShowGlobalError --> MainEventLoop
+        ShowDivZeroAlert --> MainEventLoop
+    end
+
+    subgraph SEC3_TAB2_COMPLEMENTS ["3. Tab 2: Radix and Diminished Radix Complements and Subtraction"]
+        MainEventLoop -->|"Complement Value Input"| UserCompInput[/Input Base and Unsigned Value\]
+        MainEventLoop -->|"Click Calc Complements"| UserCompCalc[/Click 'Calculate Complements'\]
+        MainEventLoop -->|"Click Subtraction"| UserCompSub[/Click 'Subtract Using Complements'\]
+
+        UserCompInput --> ValidateCompRadix[["Call ValidateBase(val, base)"]]
+        ValidateCompRadix --> SetAlignWidth["Auto-Align Width N or Set Custom Width"]
+        SetAlignWidth --> MainEventLoop
+
+        UserCompCalc --> ComputeDimComp["Compute (r-1)'s Complement:<br/>Comp = (r^N - 1) - Value"]
+        ComputeDimComp --> ComputeRadComp["Compute r's Complement:<br/>Comp = r^N - Value = (r-1)'s Comp + 1"]
+        ComputeRadComp --> DisplayComplementsUI["Render Complements Breakdown Table<br/>Across Bases 2, 8, 10, and 16"]
+        DisplayComplementsUI --> MainEventLoop
+
+        UserCompSub --> PadSubOperands["Align Minuend A and Subtrahend B with Leading Zeros to N Digits"]
+        PadSubOperands --> ForkSubMethods["Execute Both Complement Subtraction Methods"]
+
+        ForkSubMethods --> MethodDimRadix["Method 1: (r-1)'s Complement Subtraction<br/>1. Find (r-1)'s Comp of Subtrahend B<br/>2. Add Minuend A + Comp9(B)"]
+        ForkSubMethods --> MethodRadix["Method 2: r's Complement Subtraction<br/>1. Find r's Comp of Subtrahend B<br/>2. Add Minuend A + Comp10(B)"]
+
+        MethodDimRadix --> EvalEndCarryDim{"End Carry = 1?"}
+        EvalEndCarryDim -->|Yes: A >= B| EndAroundCarryRule["End-Around Carry Rule:<br/>Add 1 back to LSB<br/>Result is Positive (+)"]
+        EvalEndCarryDim -->|No: A < B| RecompDimRule["Re-complementation Rule:<br/>Re-complement Sum: (r^N - 1) - Sum<br/>Result is Negative (−)"]
+
+        MethodRadix --> EvalEndCarryRadix{"End Carry = 1?"}
+        EvalEndCarryRadix -->|Yes: A >= B| DiscardCarryRule["Discard Carry Rule:<br/>Discard End Carry 1<br/>Remaining Digits = Positive (+)"]
+        EvalEndCarryRadix -->|No: A < B| RecompRadixRule["Re-complementation Rule:<br/>Re-complement Sum: r^N - Sum<br/>Result is Negative (−)"]
+
+        EndAroundCarryRule --> DisplaySubResults["Render Side-by-Side Verification Cards"]
+        RecompDimRule --> DisplaySubResults
+        DiscardCarryRule --> DisplaySubResults
+        RecompRadixRule --> DisplaySubResults
+        DisplaySubResults --> MainEventLoop
+    end
+
+    subgraph SEC4_TAB3_BCD_SYSTEM ["4. Tab 3: BCD Arithmetic Module and Mode Routing"]
+        MainEventLoop -->|"Select BCD Preset"| UserBcdPreset[/Click BCD Preset 1-5\]
+        MainEventLoop -->|"Switch BCD Mode"| UserBcdMode[/Toggle Addition / Subtraction\]
+        MainEventLoop -->|"Type BCD Operands"| UserBcdType[/Input Decimal in A or B\]
+        MainEventLoop -->|"Toggle Comp View"| UserBcdView[/Toggle Side-by-Side / 9s / 10s\]
+        MainEventLoop -->|"Execute BCD Button"| UserBcdExec[/Click 'Execute BCD Operation'\]
+
+        UserBcdPreset --> FillBcdFields["Populate Operands A and B"]
+        FillBcdFields --> LaunchBcdExecution[["Call ProcessBCDOperation()"]]
+
+        UserBcdMode --> UpdateBcdModeState["Switch currentBcdMode ('add' <-> 'sub')<br/>Update Operator (+ / −) and Preset Rows"]
+        UpdateBcdModeState --> MainEventLoop
+
+        UserBcdView --> SetSubViewFilter["Update Visibility of 9's vs 10's Columns"]
+        SetSubViewFilter --> MainEventLoop
+
+        UserBcdType --> VerifyBcdDigits{"Chars in 0-9 Only?"}
+        VerifyBcdDigits -->|No| ShowBcdErrorMsg["Render Non-Decimal Error Notification"]
+        VerifyBcdDigits -->|Yes| GenerateNibblePills[["Convert Each Digit to 4-bit 8421 Nibble"]]
+        GenerateNibblePills --> UpdateAutoWidth["Auto-Align Width: N = max(lenA, lenB)"]
+        UpdateAutoWidth --> MainEventLoop
+        ShowBcdErrorMsg --> MainEventLoop
+
+        UserBcdExec --> LaunchBcdExecution
+        LaunchBcdExecution --> RouteBcdMode{"Active Mode?"}
+    end
+
+    subgraph SEC5_TAB3_BCD_ADDITION ["5. BCD Addition Engine (+6 Hardware-Accurate Rule)"]
+        RouteBcdMode -->|"Mode = 'add'"| RunBcdAddition[["Call addBCD(A, B, width)"]]
+        RunBcdAddition --> PadBcdAddOperands["Pad Operands A and B with Leading Zeros to N Digits"]
+        PadBcdAddOperands --> InitBcdAddState["Set incoming carry cin = 0, index i = 0 (Units / LSB)"]
+
+        InitBcdAddState --> LoopAddNibbles{"i < N? (More Digits?)"}
+        LoopAddNibbles -->|Yes| FetchCurrentDigits["Fetch digitA[i], digitB[i]"]
+        FetchCurrentDigits --> ComputeRawBinarySum["Compute rawSum = digitA + digitB + cin"]
+        ComputeRawBinarySum --> CheckAdderOverflow{"rawSum >= 16?"}
+        CheckAdderOverflow -->|Yes| FlagBinaryCarry["binaryCarry = 1"]
+        CheckAdderOverflow -->|No| ClearBinaryCarry["binaryCarry = 0"]
+
+        FlagBinaryCarry --> TestCorrectionCondition{"rawSum > 9 OR binaryCarry == 1?"}
+        ClearBinaryCarry --> TestCorrectionCondition
+
+        TestCorrectionCondition -->|Yes: Invalid BCD State| ApplySixCorrection["Apply Hardware +6 Correction:<br/>correctedDigit = (rawSum + 6) & 0x0F<br/>cout = 1 (Decimal Carry Generated)"]
+        TestCorrectionCondition -->|No: Valid BCD State| PassValidDigit["No Correction Required:<br/>correctedDigit = rawSum<br/>cout = 0"]
+
+        ApplySixCorrection --> RecordNibbleAudit["Store Step: Place Value, Binary Nibbles, Correction and Carry"]
+        PassValidDigit --> RecordNibbleAudit
+        RecordNibbleAudit --> AdvanceAddPointers["cin = cout, i = i + 1"]
+        AdvanceAddPointers --> LoopAddNibbles
+
+        LoopAddNibbles -->|No: All Positions Processed| CheckFinalEndCarry{"Final cin (End Carry) == 1?"}
+        CheckFinalEndCarry -->|Yes| AddLeadingNibble["Prepend MSB Digit '1' (0001₂)<br/>Aligned Output Expanded to N+1 Digits"]
+        CheckFinalEndCarry -->|No| KeepAlignedLength["Final Output Remains N Digits"]
+
+        AddLeadingNibble --> RenderAdditionUI["Render BCD Addition Results Area"]
+        KeepAlignedLength --> RenderAdditionUI
+        RenderAdditionUI --> DrawAddHeroCard["Render Hero Card (8421 BCD Groups and Decimal Answer)"]
+        DrawAddHeroCard --> DrawColumnarTable["Render Full Bitwise Columnar Addition Table:<br/>Augend + Addend + Raw Sum + (+6) Correction + Final BCD"]
+        DrawColumnarTable --> DrawPlaceCards["Render Place Value Breakdown Cards (Units, Tens, Hundreds, etc.)"]
+        DrawPlaceCards --> MainEventLoop
+    end
+
+    subgraph SEC6_TAB3_BCD_SUBTRACTION ["6. BCD Subtraction Engine (9's and 10's Complements)"]
+        RouteBcdMode -->|"Mode = 'sub'"| RunBcdSubtraction["Execute Dual BCD Subtraction Pipeline"]
+        RunBcdSubtraction --> PadBcdSubOperands["Align Minuend A and Subtrahend B with Leading Zeros to N Digits"]
+        PadBcdSubOperands --> ExecuteComplementBranches["Execute 9's and 10's Branches in Parallel"]
+
+        %% 9's Complement Branch
+        ExecuteComplementBranches --> Branch9s["9's Complement Method Branch"]
+        Branch9s --> Step1_Comp9["Step 1: Compute 9's Complement of Subtrahend B:<br/>Comp9[i] = 9 - digitB[i]"]
+        Step1_Comp9 --> Step2_AddComp9[["Step 2: Add Minuend A + Comp9(B) via addBCD Engine"]]
+        Step2_AddComp9 --> Step3_CheckCarry9{"Step 3: End Carry out of MSB == 1?"}
+        Step3_CheckCarry9 -->|Yes: A >= B (Positive)| Step4A_EndAroundCarry[["Step 4A: End-Around Carry Rule<br/>Call addBCD(intermediateSum, '1')<br/>Add 1 back to LSB"]]
+        Step3_CheckCarry9 -->|No: A < B (Negative)| Step4B_Recomp9["Step 4B: Re-complementation Rule<br/>Re-complement Intermediate Sum:<br/>mag[i] = 9 - sum[i]<br/>Attach Minus Sign (−)"]
+        Step4A_EndAroundCarry --> Finalize9s["Produce Final 9's Complement Result"]
+        Step4B_Recomp9 --> Finalize9s
+
+        %% 10's Complement Branch
+        ExecuteComplementBranches --> Branch10s["10's Complement Method Branch"]
+        Branch10s --> Step1_Comp10["Step 1: Compute 10's Complement of Subtrahend B:<br/>Comp10 = Comp9 + 1"]
+        Step1_Comp10 --> Step2_AddComp10[["Step 2: Add Minuend A + Comp10(B) via addBCD Engine"]]
+        Step2_AddComp10 --> Step3_CheckCarry10{"Step 3: End Carry out of MSB == 1?"}
+        Step3_CheckCarry10 -->|Yes: A >= B (Positive)| Step4A_DiscardCarry["Step 4A: Discard Carry Rule<br/>Discard End Carry 1<br/>Remaining N Digits = True Positive Result (+)"]
+        Step3_CheckCarry10 -->|No: A < B (Negative)| Step4B_Recomp10["Step 4B: Re-complementation Rule<br/>Re-complement Intermediate Sum:<br/>mag = 10's Comp(sum) = (9's Comp + 1)<br/>Attach Minus Sign (−)"]
+        Step4A_DiscardCarry --> Finalize10s["Produce Final 10's Complement Result"]
+        Step4B_Recomp10 --> Finalize10s
+
+        %% Subtraction UI Mounting
+        Finalize9s --> MountSubResultsUI["Mount BCD Subtraction UI Containers"]
+        Finalize10s --> MountSubResultsUI
+        MountSubResultsUI --> DrawSubHeroCard["Render Hero Card with Signed Result and 8421 BCD Groups"]
+        DrawSubHeroCard --> DrawSideBySideGrid["Render Side-by-Side Comparison Columns:<br/>9's Complement Card vs. 10's Complement Card"]
+        DrawSideBySideGrid --> DrawVerdictBadges["Render Color-Coded Carry Verdict Badges:<br/>Green [Carry = 1] or Red [Carry = 0]"]
+        DrawVerdictBadges --> DrawTakeawaysSummary["Render Comparative Method Analysis Summary Card"]
+        DrawTakeawaysSummary --> MainEventLoop
+    end
 ```
 
 ---
 
-## 2. Main Calculation Engine Flowchart (`ProcessCalculation`)
-
-Details the entire 4-phase arithmetic pipeline featuring loop iteration, sub-function calls, sequential chain arithmetic, division-by-zero detection, and output generation.
-
-```mermaid
-flowchart TD
-    StartCalc(["Start ProcessCalculation()"]) --> ReadDOMRows[/Read All Input Rows from DOM/]
-    ReadDOMRows --> InitFlags["allValid = true<br/>decimalValues = [ ]<br/>originalTokens = [ ]<br/>decimalTokens = [ ]"]
-
-    %% Phase 1: Input Harvesting & Per-Row Conversion
-    InitFlags --> PrepLoop{{For i = 1 to TotalRows}}
-    PrepLoop --> ReadRowIO[/Read base and rawVal for Row i/]
-    ReadRowIO --> CheckEmpty{"rawVal is Empty?"}
-
-    CheckEmpty -->|"Yes"| OutEmptyErr[/Display 'Input cannot be empty' Error/]
-    OutEmptyErr --> ClearRowMatrix1[/Clear Row i Conversion Matrix/]
-    ClearRowMatrix1 --> FlagInvalid1["allValid = false"]
-    FlagInvalid1 --> NextRowStep
-
-    CheckEmpty -->|"No"| CallValidate[["IsValidNumber(rawVal, base)"]]
-    CallValidate --> CheckValidResult{"Is Valid?"}
-
-    CheckValidResult -->|"No"| OutCharErr[/Display 'Invalid character' Error/]
-    OutCharErr --> ClearRowMatrix2[/Clear Row i Conversion Matrix/]
-    ClearRowMatrix2 --> FlagInvalid2["allValid = false"]
-    FlagInvalid2 --> NextRowStep
-
-    CheckValidResult -->|"Yes"| ClearErrUI["Remove Error Styling on Row i"]
-    ClearErrUI --> CallParse[["decVal = ParseToDecimal(rawVal, base)"]]
-    CallParse --> AppendDec["Append decVal to decimalValues"]
-
-    AppendDec --> CallFormatBin[["binStr = FormatBase(decVal, 2, 0)"]]
-    CallFormatBin --> CallFormatOct[["octStr = FormatBase(decVal, 8, 0)"]]
-    CallFormatOct --> CallFormatHex[["hexStr = FormatBase(decVal, 16, 0)"]]
-    CallFormatHex --> DisplayRowMatrix[/Output Row i Matrix: BIN, OCT, DEC, HEX/]
-
-    DisplayRowMatrix --> BuildToken["Append (rawVal + Subscript) to originalTokens<br/>Append decVal to decimalTokens"]
-    BuildToken --> NextRowStep["Increment i"]
-    NextRowStep --> PrepLoop
-
-    %% Validation Guard
-    PrepLoop -->|"Loop Complete"| CheckAllValid{"allValid == true AND<br/>decimalValues.length == TotalRows?"}
-    CheckAllValid -->|"No"| HideResults["Hide Results Section"]
-    HideResults --> ExitCalc(["Halt / Return"])
-
-    %% Phase 2: Sequential Decimal Arithmetic
-    CheckAllValid -->|"Yes"| InitMath["computedResult = decimalValues[0]<br/>isDivByZero = false<br/>divZeroIndex = null"]
-    InitMath --> MathLoop{{For k = 1 to TotalRows - 1}}
-
-    MathLoop --> FetchNext["nextVal = decimalValues[k]"]
-    FetchNext --> BranchOp{"currentOperation"}
-
-    BranchOp -->|"+"| DoAdd["computedResult = computedResult + nextVal"] --> NextK["Increment k"]
-    BranchOp -->|"-"| DoSub["computedResult = computedResult - nextVal"] --> NextK
-    BranchOp -->|"*"| DoMul["computedResult = computedResult * nextVal"] --> NextK
-    BranchOp -->|"/"| CheckZero{"nextVal == 0?"}
-
-    CheckZero -->|"Yes"| SetDivZero["isDivByZero = true<br/>divZeroIndex = k + 1"]
-    SetDivZero --> BreakLoop["Break Out of Math Loop"]
-    CheckZero -->|"No"| DoDiv["computedResult = computedResult / nextVal"] --> NextK
-    NextK --> MathLoop
-
-    MathLoop -->|"Math Complete"| CheckDivFlag{"isDivByZero == true?"}
-    BreakLoop --> CheckDivFlag
-
-    %% Phase 3 & 4: Output Rendering
-    CheckDivFlag -->|"Yes"| ShowDivZeroErr[/Output 'Division by Zero' Error on Input divZeroIndex/]
-    ShowDivZeroErr --> FormatFormulaErr["formula = decimalTokens + ' = Undefined'"]
-    FormatFormulaErr --> OutTilesErr[/Display 'Undefined (Div by 0)' on All 4 Final Tiles/]
-
-    CheckDivFlag -->|"No"| FormatFormulaNormal["formula = decimalTokens + ' = ' + computedResult"]
-    FormatFormulaNormal --> FinalBin[["finalBin = FormatBase(computedResult, 2, 6)"]]
-    FinalBin --> FinalOct[["finalOct = FormatBase(computedResult, 8, 6)"]]
-    FinalOct --> FinalDec[["finalDec = FormatBase(computedResult, 10, 6)"]]
-    FinalDec --> FinalHex[["finalHex = FormatBase(computedResult, 16, 6)"]]
-    FinalHex --> OutTilesNormal[/Display finalBin, finalOct, finalDec, finalHex on Result Tiles/]
-
-    OutTilesErr --> DisplayExpr[/Output expressionString to expression-display<br/>Output formula to decimal-formula/]
-    OutTilesNormal --> DisplayExpr
-    DisplayExpr --> RevealUI["Reveal Results Section & Smooth Scroll"]
-    RevealUI --> EndCalc(["End ProcessCalculation()"])
-```
-
----
-
-## 3. Input Validation Subroutine Flowchart (`IsValidNumber`)
-
-Enforces radix syntax compliance using standard decision branching and symbol verification.
-
-```mermaid
-flowchart TD
-    StartVal(["Start IsValidNumber(value, base)"]) --> CheckEmpty{"value is Empty or Null?"}
-    CheckEmpty -->|"Yes"| RetFalse1(["Return False"])
-
-    CheckEmpty -->|"No"| CheckSign{"First Char == '-'?"}
-    CheckSign -->|"Yes"| StripSign["cleanVal = value without '-'"]
-    CheckSign -->|"No"| KeepVal["cleanVal = value"]
-
-    StripSign --> CheckCleanEmpty{"cleanVal is Empty?"}
-    CheckCleanEmpty -->|"Yes"| RetFalse2(["Return False"])
-    CheckCleanEmpty -->|"No"| SwitchBase{"base Radix"}
-    KeepVal --> SwitchBase
-
-    SwitchBase -->|"Base 2"| SetBinPattern["Allowed: '0', '1'"]
-    SwitchBase -->|"Base 8"| SetOctPattern["Allowed: '0' through '7'"]
-    SwitchBase -->|"Base 10"| SetDecPattern["Allowed: '0' through '9'"]
-    SwitchBase -->|"Base 16"| SetHexPattern["Allowed: '0'-'9', 'A'-'F', 'a'-'f'"]
-
-    SetBinPattern --> TestChars{{For each char in cleanVal}}
-    SetOctPattern --> TestChars
-    SetDecPattern --> TestChars
-    SetHexPattern --> TestChars
-
-    TestChars --> MatchCheck{"char matches Allowed Pattern?"}
-    MatchCheck -->|"No"| RetFalse3(["Return False"])
-    MatchCheck -->|"Yes"| NextChar["Next Character"]
-    NextChar --> TestChars
-
-    TestChars -->|"All Characters Validated"| RetTrue(["Return True"])
-```
-
----
-
-## 4. Base Conversion Subroutine Flowcharts
-
-### A. Base-N to Decimal Subroutine (`ParseToDecimal`)
-Converts positional string representations into standard integers using Horner's polynomial expansion: $\text{decimal} = (\text{decimal} \times \text{base}) + \text{digit}$.
-
-```mermaid
-flowchart TD
-    StartParse(["Start ParseToDecimal(valueStr, base)"]) --> CheckNeg{"First Char == '-'?"}
-    CheckNeg -->|"Yes"| SetNegFlag["isNeg = true<br/>cleanStr = valueStr without '-'"]
-    CheckNeg -->|"No"| SetPosFlag["isNeg = false<br/>cleanStr = valueStr"]
-
-    SetNegFlag --> InitAccum["decimal = 0"]
-    SetPosFlag --> InitAccum
-
-    InitAccum --> LoopChars{{For each char in cleanStr}}
-    LoopChars --> CharToVal["digit = CharacterToInteger(char)"]
-    CharToVal --> MultiplyAdd["decimal = (decimal * base) + digit"]
-    MultiplyAdd --> NextC["Next Character"]
-    NextC --> LoopChars
-
-    LoopChars -->|"Finished String"| CheckSignApply{"isNeg == true?"}
-    CheckSignApply -->|"Yes"| NegateResult["decimal = -decimal"]
-    CheckSignApply -->|"No"| ReturnDec(["Return decimal"])
-    NegateResult --> ReturnDec
-```
-
----
-
-### B. Decimal to Target Base Subroutine (`FormatBase`)
-Processes both integer and fractional components using repeated division (modulo) and repeated multiplication.
-
-```mermaid
-flowchart TD
-    StartFmt(["Start FormatBase(num, base, precision = 6)"]) --> CheckNaN{"Is NaN or Infinite?"}
-    CheckNaN -->|"NaN"| RetNaN(["Return 'NaN'"])
-    CheckNaN -->|"Infinity"| RetInf(["Return Signed 'Infinity'"])
-    CheckNaN -->|"Finite"| Decompose["isNegative = (num < 0)<br/>absNum = ABS(num)<br/>intPart = FLOOR(absNum)<br/>fracPart = absNum - intPart"]
-
-    %% Integer Conversion Step
-    Decompose --> CheckIntZero{"intPart == 0?"}
-    CheckIntZero -->|"Yes"| SetIntZero["intStr = '0'"]
-    CheckIntZero -->|"No"| DivModuloLoop["intStr = ConvertIntegerByRepeatedDivision(intPart, base)"]
-    SetIntZero --> CheckFracExists
-    DivModuloLoop --> CheckFracExists
-
-    %% Fractional Decision
-    CheckFracExists{"fracPart == 0 OR precision <= 0?"}
-    CheckFracExists -->|"Yes (Integer Only)"| BuildIntOnly["result = (isNegative ? '-' : '') + intStr"]
-    BuildIntOnly --> RetIntOnly(["Return result"])
-
-    %% Fractional Multiplication Step
-    CheckFracExists -->|"No (Has Fraction)"| InitFracVars["fracStr = ''<br/>count = 0"]
-    InitFracVars --> FracLoop{{While fracPart > 0 AND count < precision}}
-
-    FracLoop --> ScaleFrac["fracPart = fracPart * base<br/>digit = FLOOR(fracPart)"]
-    ScaleFrac --> AppendFracChar["fracStr = fracStr + DigitToChar(digit)<br/>fracPart = fracPart - digit<br/>count = count + 1"]
-    AppendFracChar --> FracLoop
-
-    FracLoop -->|"Loop Finished"| BuildFull["result = (isNegative ? '-' : '') + intStr + '.' + fracStr"]
-    BuildFull --> RetFull(["Return result"])
-```
-
----
-
-## 5. Dynamic Row Management Flowchart (`RenderInputs`)
-
-Illustrates state preservation during dynamic DOM restructuring.
-
-```mermaid
-flowchart TD
-    StartRender(["Start RenderInputs(count)"]) --> CheckCount{"count < 3 OR isNaN(count)?"}
-    CheckCount -->|"Yes"| ResetCount["count = 3<br/>Update UI field to 3"]
-    CheckCount -->|"No"| AcceptCount["Use count"]
-
-    ResetCount --> HarvestState
-    AcceptCount --> HarvestState
-
-    HarvestState[/Read existing rows from DOM: save base and val in existingData array/]
-    HarvestState --> ClearDOM["Clear inputsContainer.innerHTML"]
-    ClearDOM --> LoopGenerate{{For i = 1 to count}}
-
-    LoopGenerate --> CreateDOM["Create row container, base dropdown, input field, and 4-cell matrix"]
-    CreateDOM --> CheckHasSaved{"existingData[i - 1] exists?"}
-
-    CheckHasSaved -->|"Yes"| RestoreData["Restore base value<br/>Restore input text<br/>Update base indicator badge"]
-    CheckHasSaved -->|"No"| ApplyDefault["Set default Base 10<br/>Leave input empty"]
-
-    RestoreData --> AppendRow["Append row to inputsContainer"]
-    ApplyDefault --> AppendRow
-    AppendRow --> NextRowIdx["Increment i"]
-    NextRowIdx --> LoopGenerate
-
-    LoopGenerate -->|"All Rows Created"| HideOldCard["Hide resultsSection"]
-    HideOldCard --> EndRender(["End RenderInputs()"])
-```
-
----
-
-## 6. Complement Computation Flowchart
-
-Shows the process for computing both the $(r-1)$'s and $r$'s complements of a number in any base.
-
-```mermaid
-flowchart TD
-    StartComp(["Start ComputeComplements(value, base, numDigits)"]) --> PadInput["Pad value to numDigits width with leading zeros"]
-    PadInput --> CalcMax["maxDigit = base - 1"]
-
-    CalcMax --> DimLoop{{"For each digit i in padded value"}}
-    DimLoop --> SubDigit["complementDigit = maxDigit - digit[i]"]
-    SubDigit --> AppendDim["Append complementDigit to diminishedResult"]
-    AppendDim --> RecordStep["Record step: maxDigit − digit = complementDigit"]
-    RecordStep --> NextDim["Increment i"]
-    NextDim --> DimLoop
-
-    DimLoop -->|"All digits processed"| DimDone[/"Output: (r-1)'s Complement = diminishedResult"/]
-
-    DimDone --> AddOne["radixResult = diminishedResult + 1 (in base r)"]
-    AddOne --> CarryCheck{{"Process carry propagation"}}
-    CarryCheck --> RadDone[/"Output: r's Complement = radixResult"/]
-
-    RadDone --> EndComp(["End ComputeComplements()"])
-```
-
----
-
-## 7. Subtraction via (r-1)'s Complement Flowchart
-
-Shows the end-around carry method for subtraction using diminished radix complement.
-
-```mermaid
-flowchart TD
-    StartSub(["Start SubtractDiminished(A, B, base, n)"]) --> PadAB["Pad A and B to n digits"]
-    PadAB --> CompB[["Call ComputeDiminishedRadixComplement(B, base, n)"]]
-    CompB --> AddAComp["sum = A + complement(B) in base r"]
-    AddAComp --> CheckCarry{"Carry generated?"}
-
-    CheckCarry -->|"Yes (Carry = 1)"| EAC["End-Around Carry:<br/>Remove carry, add 1 to sum"]
-    EAC --> PosResult[/"Result = sum + 1 (Positive)"/]
-
-    CheckCarry -->|"No (Carry = 0)"| ReComp[["Take (r-1)'s complement of sum"]]
-    ReComp --> NegResult[/"Result = −complement(sum) (Negative)"/]
-
-    PosResult --> ConvertAll["Convert result to all 4 bases"]
-    NegResult --> ConvertAll
-    ConvertAll --> EndSub(["End SubtractDiminished()"])
-```
-
----
-
-## 8. Subtraction via r's Complement Flowchart
-
-Shows the discard-carry method for subtraction using radix complement.
-
-```mermaid
-flowchart TD
-    StartSubR(["Start SubtractRadix(A, B, base, n)"]) --> PadABR["Pad A and B to n digits"]
-    PadABR --> CompBR[["Call ComputeRadixComplement(B, base, n)"]]
-    CompBR --> AddACompR["sum = A + complement(B) in base r"]
-    AddACompR --> CheckCarryR{"Carry generated?"}
-
-    CheckCarryR -->|"Yes (Carry = 1)"| DiscardCarry["Discard carry bit"]
-    DiscardCarry --> PosResultR[/"Result = sum (Positive)"/]
-
-    CheckCarryR -->|"No (Carry = 0)"| ReCompR[["Take r's complement of sum"]]
-    ReCompR --> NegResultR[/"Result = −complement(sum) (Negative)"/]
-
-    PosResultR --> ConvertAllR["Convert result to all 4 bases"]
-    NegResultR --> ConvertAllR
-    ConvertAllR --> EndSubR(["End SubtractRadix()"])
-```
-
----
-
-## 9. BCD Addition with +6 Rule Flowchart (`AddBCD`)
-
-Details the 8421 BCD addition process including digit padding, 4-bit nibble binary addition, invalid BCD state detection ($>9$ or binary overflow $\ge 16$), automatic $+6$ ($0110_2$) correction, and multi-decade carry propagation.
-
-```mermaid
-flowchart TD
-    StartBcdAdd(["Start AddBCD(numA, numB, minWidth)"]) --> PadInputs["Align length N = max(len(A), len(B), minWidth)<br/>alignedA = PadLeft(A, N, '0')<br/>alignedB = PadLeft(B, N, '0')"]
-    PadInputs --> InitAdd["carry = 0<br/>resultDigits = [ ]<br/>nibbleSteps = [ ]"]
-
-    InitAdd --> LoopNibbles{{"For i = N-1 down to 0 (LSB to MSB)"}}
-    LoopNibbles --> GetDigits["digitA = int(alignedA[i])<br/>digitB = int(alignedB[i])<br/>carryIn = carry"]
-    GetDigits --> EncodeNibbles["nibbleA = DecimalDigitToBCD(digitA)<br/>nibbleB = DecimalDigitToBCD(digitB)"]
-    EncodeNibbles --> BinarySum["rawSum = digitA + digitB + carryIn<br/>rawBits = ToBinary4Bit(rawSum)"]
-
-    BinarySum --> CheckCorr{"rawSum > 9<br/>or carry generated?"}
-    CheckCorr -->|"Yes (Invalid BCD)"| ApplyCorr["correctionNeeded = true<br/>correctedSum = rawSum + 6<br/>resDigit = (rawSum + 6) & 0xF<br/>carryOut = 1"]
-    CheckCorr -->|"No (Valid BCD)"| NoCorr["correctionNeeded = false<br/>correctedSum = rawSum<br/>resDigit = rawSum<br/>carryOut = 0"]
-
-    ApplyCorr --> RecordStep["resNibble = DecimalDigitToBCD(resDigit)<br/>resultDigits.prepend(resDigit)<br/>Record Step(nibbleA, nibbleB, rawSum, corr, carryOut)"]
-    NoCorr --> RecordStep
-    RecordStep --> UpdateCarry["carry = carryOut"]
-    UpdateCarry --> DecrLoop["Next i (toward MSB)"]
-    DecrLoop --> LoopNibbles
-
-    LoopNibbles -->|"All N nibbles processed"| CheckEndCarry{"Final carry == 1?"}
-    CheckEndCarry -->|"Yes"| PrependOne["finalDigits = '1' + resultDigits.join('')<br/>endCarry = 1"]
-    CheckEndCarry -->|"No"| DirectDigits["finalDigits = resultDigits.join('')<br/>endCarry = 0"]
-
-    PrependOne --> BuildOutput["resultBCD = Map DecimalDigitToBCD(finalDigits)<br/>decimalValue = parseInt(finalDigits)"]
-    DirectDigits --> BuildOutput
-    BuildOutput --> RenderBcdUI[/"Render Hero Card, Nibble Walkthrough & Columnar Stack Table"/]
-    RenderBcdUI --> EndBcdAdd(["End AddBCD()"])
-```
-
----
-
-## 10. BCD Subtraction via 9's Complement Flowchart (`BCDSubtract9sComplement`)
-
-Details BCD subtraction $A - B$ using 9's complement arithmetic, featuring End-Around Carry addition for positive results and re-complementing for negative results.
-
-```mermaid
-flowchart TD
-    StartSub9(["Start BCDSubtract9sComplement(A, B, minWidth)"]) --> AlignSub9["Pad A and B to length N<br/>alignedA = PadLeft(A, N, '0')<br/>alignedB = PadLeft(B, N, '0')"]
-    AlignSub9 --> Step1Comp9["Compute 9's Complement of B:<br/>For each digit b in alignedB: compD = 9 - b<br/>comp9Str = concatenated compD"]
-    Step1Comp9 --> BcdEncode9["Encode alignedA & comp9Str to 8421 BCD nibbles"]
-    BcdEncode9 --> CallBcdAdd9[["Call AddBCD(alignedA, comp9Str, N)"]]
-    CallBcdAdd9 --> InspectEndCarry9{"AddBCD endCarry == 1?<br/>(A >= B)"}
-
-    InspectEndCarry9 -->|"Yes (Positive: A >= B)"| EAC9["End-Around Carry Detected:<br/>Add 1 to intermediate sum digits via BCD Adder<br/>endAround = AddBCD(sumDigitsOnly, '1', N)"]
-    EAC9 --> PosFinal9["finalDigits = endAround.sumDigitsOnly<br/>sign = '+'<br/>decimalValue = +parseInt(finalDigits)"]
-
-    InspectEndCarry9 -->|"No (Negative: A < B)"| Recomp9["No End Carry Detected (In 9's Form):<br/>Re-complement intermediate sum using 9's complement:<br/>For each digit s in sumDigitsOnly: (9 - s)"]
-    Recomp9 --> NegFinal9["finalDigits = recomplemented digits<br/>sign = '−'<br/>decimalValue = -parseInt(finalDigits)"]
-
-    PosFinal9 --> RenderSub9[/"Render Verdict: 'End-Around Carry +1 Applied' & Final Result"/]
-    NegFinal9 --> RenderSub9
-    RenderSub9 --> EndSub9(["End BCDSubtract9sComplement()"])
-```
-
----
-
-## 11. BCD Subtraction via 10's Complement Flowchart (`BCDSubtract10sComplement`)
-
-Details BCD subtraction $A - B$ using 10's complement arithmetic, featuring End Carry Discarding for positive results and 10's complement re-complementing for negative results.
-
-```mermaid
-flowchart TD
-    StartSub10(["Start BCDSubtract10sComplement(A, B, minWidth)"]) --> AlignSub10["Pad A and B to length N<br/>alignedA = PadLeft(A, N, '0')<br/>alignedB = PadLeft(B, N, '0')"]
-    AlignSub10 --> Step1Comp10["Compute 10's Complement of B:<br/>comp9Str = 9's complement of alignedB<br/>comp10Str = AddBCD(comp9Str, '1', N).sumDigitsOnly"]
-    Step1Comp10 --> BcdEncode10["Encode alignedA & comp10Str to 8421 BCD nibbles"]
-    BcdEncode10 --> CallBcdAdd10[["Call AddBCD(alignedA, comp10Str, N)"]]
-    CallBcdAdd10 --> InspectEndCarry10{"AddBCD endCarry == 1?<br/>(A >= B)"}
-
-    InspectEndCarry10 -->|"Yes (Positive: A >= B)"| Discard10["End Carry Generated = 1:<br/>Discard End Carry!<br/>Remaining N digits form true magnitude"]
-    Discard10 --> PosFinal10["finalDigits = additionResult.sumDigitsOnly<br/>sign = '+'<br/>decimalValue = +parseInt(finalDigits)"]
-
-    InspectEndCarry10 -->|"No (Negative: A < B)"| Recomp10["No End Carry Generated = 0 (In 10's Form):<br/>Re-complement intermediate sum using 10's complement:<br/>inter9 = 9's comp of sumDigitsOnly<br/>finalDigits = AddBCD(inter9, '1', N).sumDigitsOnly"]
-    Recomp10 --> NegFinal10["finalDigits = recomplemented digits<br/>sign = '−'<br/>decimalValue = -parseInt(finalDigits)"]
-
-    PosFinal10 --> RenderSub10[/"Render Verdict: 'End Carry Discarded' & Final Result"/]
-    NegFinal10 --> RenderSub10
-    RenderSub10 --> EndSub10(["End BCDSubtract10sComplement()"])
-```
-
+## Flowchart Components & Verification Guide
+
+1. **System Initialization & Routing (Section 1):** Covers startup defaults (`inputs = 3`, active tab = `converter`) and event listeners for tab switching.
+2. **Tab 1: Converter & Calculator (Section 2):** Covers dynamic input rows, live 4-base conversion matrix, tokenization, Dijkstra's Shunting-yard algorithm, Abstract Syntax Tree (AST) reduction, and division-by-zero detection.
+3. **Tab 2: Complements & Subtraction (Section 3):** Covers diminished-radix $(r-1)$'s and radix $r$'s complement calculation, and side-by-side subtraction highlighting End-Around Carry vs. Discard Carry.
+4. **Tab 3: BCD Arithmetic System (Section 4):** Covers operation mode switching (`+` vs. `−`), preset injection, real-time 4-bit nibble previewing, and auto digit alignment.
+5. **BCD Addition Engine with +6 Rule (Section 5):** Covers bitwise nibble iteration, raw binary sum calculation, modulo 16 binary adder overflow detection ($\ge 16$), correction triggering ($> 9$ or carry), hardware-accurate `(rawSum + 6) & 0x0F` correction, and leading MSB digit prepending on end carry.
+6. **BCD Subtraction Engine (Section 6):** Covers concurrent 9's and 10's complement subtraction pipelines, carry inspection, End-Around Carry addition, Discard Carry, and re-complementation of negative differences.

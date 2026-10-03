@@ -2,1067 +2,1093 @@
 ## System Pseudocode & Algorithmic Documentation
 
 **Course / Project:** CPE463 - Number System Converter  
-**File Reference:** [`script.js`](../script.js) | [`index.html`](../index.html) | [`style.css`](../style.css)
+**File Reference:** [`script.js`](../script.js) | [`index.html`](../index.html) | [`FLOWCHART.md`](FLOWCHART.md)
 
 ---
 
-## 1. System Overview & Architecture
+## Complete Unified Algorithmic Specification
 
-The application accepts $N$ inputs ($N \ge 3$) where each input can belong to any of the four standard computer number systems:
-- **Binary** (Base 2: symbols `0, 1`)
-- **Octal** (Base 8: symbols `0-7`)
-- **Decimal** (Base 10: symbols `0-9`)
-- **Hexadecimal** (Base 16: symbols `0-9, A-F`)
-
-The computation pipeline follows a 4-phase unified engine:
-1. **Input Validation & Per-Input Conversion:** Each input is validated against its chosen base and converted into a standard decimal (base-10) integer, while simultaneously rendering an individual 4-base conversion matrix (`BIN`, `OCT`, `DEC`, `HEX`).
-2. **Common Base Evaluation:** Arithmetic operations ($+$, $-$, $\times$, $\div$) are sequentially evaluated left-to-right on the common decimal values with division-by-zero detection.
-3. **Expression Rendering:** Mathematical expressions are formatted displaying original inputs with base subscripts (e.g., $1010_2 + 12_8 + 5_{10}$) along with the decimal evaluation breakdown.
-4. **Multi-Base Result Formatting:** The final computed decimal result is converted into all 4 number systems (with fractional precision up to 6 decimal places).
-
-```
-   [ Input 1 (Base A) ] ──> Validate ──> Convert to Dec ──> [ Per-Input Matrix (2, 8, 10, 16) ]
-   [ Input 2 (Base B) ] ──> Validate ──> Convert to Dec ──> [ Per-Input Matrix (2, 8, 10, 16) ]
-   [ Input N (Base C) ] ──> Validate ──> Convert to Dec ──> [ Per-Input Matrix (2, 8, 10, 16) ]
-                                    │
-                                    ▼
-                 [ Sequential Arithmetic Chain in Base 10 ]
-                            (+, -, *, / with Div/0 Guard)
-                                    │
-           ┌────────────────────────┴────────────────────────┐
-           ▼                                                 ▼
-[ Formatted Expression ]                           [ Final Multi-Base Results ]
- e.g. 1010₂ + 12₈ + 5₁₀                             BIN (2), OCT (8), DEC (10), HEX (16)
-```
-
----
-
-## 2. High-Level Program Driver
+> [!NOTE]
+> The single unified block below contains the complete algorithmic pseudocode for all 16 modules across the application. All section headers, architectural overviews, functional specifications, parameter inputs/outputs, and algorithmic step-by-step descriptions are formatted as code comments (`//` and `/* ... */`).
+>
+> You can select and copy this entire block directly into Google Docs or academic project submissions without manual stitching.
 
 ```text
-PROGRAM NumberSystemConverterAndCalculator
+/* =============================================================================
+ * CPE 463: NUMBER SYSTEM CONVERTER & UNIFIED ARITHMETIC ENGINE
+ * COMPLETE UNIFIED ALGORITHMIC PSEUDOCODE SPECIFICATION
+ * =============================================================================
+ * TABLE OF MODULES:
+ *   SECTION 1: High-Level Program Driver & 3-Tab Event Router
+ *   SECTION 2: Input Validation Engine (IsValidNumber)
+ *   SECTION 3: Positional Base Normalization (ParseToDecimal)
+ *   SECTION 4: Multi-Base Output Formatter (FormatBase)
+ *   SECTION 5: Individual 4-Base Matrix Dispatcher (ConvertToAllBases)
+ *   SECTION 6: Dynamic Input Row Renderer (RenderInputs)
+ *   SECTION 7: Infix Expression Lexer & Tokenizer (TokenizeExpression)
+ *   SECTION 8: Dijkstra's Shunting-Yard Infix-to-RPN Parser (ShuntingYard)
+ *   SECTION 9: Abstract Syntax Tree (AST) Builder (BuildAST)
+ *   SECTION 10: Recursive Bottom-Up AST Reduction Engine (ReduceASTStepByStep)
+ *   SECTION 11: Radix and Diminished Radix Complement Engine (ComputeComplements)
+ *   SECTION 12: General Subtraction via Complements (SubtractViaComplements)
+ *   SECTION 13: BCD 8421 Nibble Encoders & Decoders
+ *   SECTION 14: BCD Addition Engine with Hardware-Accurate +6 Rule (AddBCD)
+ *   SECTION 15: BCD Subtraction Engine via 9's Complement (BCDSubtract9sComplement)
+ *   SECTION 16: BCD Subtraction Engine via 10's Complement (BCDSubtract10sComplement)
+ *   SECTION 17: Master Calculation Handlers (ProcessCalculation & ProcessBCDOperation)
+ * =============================================================================
+ */
 
+
+// =============================================================================
+// SECTION 1: HIGH-LEVEL PROGRAM DRIVER & 3-TAB EVENT ROUTER
+// =============================================================================
+// WHAT IT DOES:
+//   Initializes the global application state, binds UI events across the three
+//   primary functional tabs, handles tab activation with deep-linking (URL hashes),
+//   and listens for user interactions (preset clicks, field resizing, calculations).
+// =============================================================================
+
+PROGRAM NumberSystemConverterAndUnifiedEngine
+
+    // Global application configuration and state variables
     INITIALIZE ApplicationState:
-        currentOperation ← "+"
-        numInputs ← 3
-        subscriptMap ← { 2: "₂", 8: "₈", 10: "₁₀", 16: "₁₆" }
-        opSymbols ← { "+": "+", "-": "−", "*": "×", "/": "÷" }
+        activeTab           <-- "converter"     // "converter", "complements", or "bcd"
+        currentBcdMode      <-- "add"           // "add" (+6 rule) or "sub" (complements)
+        currentBcdSubView   <-- "both"          // "both", "9s", or "10s"
+        numInputs           <-- 3               // Minimum 3 input rows
+        subscriptMap        <-- { 2: "₂", 8: "₈", 10: "₁₀", 16: "₁₆" }
+        operatorSymbols     <-- { "+": "+", "-": "−", "*": "×", "/": "÷" }
 
+    // System Startup Lifecycle
     ON ApplicationStart DO:
-        CALL RenderInputs(3)
+        CALL RenderInputs(ApplicationState.numInputs)
+        CALL ReadURLHashAndActivateTab()
+        ATTACH_EVENT_LISTENERS()
     END ON
 
-    EVENT ON OperationButtonClicked(op) DO:
-        currentOperation ← op
-        UPDATE_ACTIVE_BUTTON_UI(op)
+    // Tab Navigation Event Handlers
+    EVENT ON TabButtonClicked(targetTab) DO:
+        ApplicationState.activeTab <-- targetTab
+        FOR EACH tabBtn IN DOM.QueryAll(".tab-btn") DO:
+            tabBtn.classList.Toggle("active", tabBtn.dataset.tab == targetTab)
+            tabBtn.SetAttribute("aria-selected", tabBtn.dataset.tab == targetTab)
+        END FOR
+        FOR EACH tabPanel IN DOM.QueryAll(".tab-panel") DO:
+            tabPanel.classList.Toggle("active", tabPanel.id == "tab-panel-" + targetTab)
+        END FOR
+        UPDATE_WINDOW_HASH("#" + targetTab)
     END EVENT
 
-    EVENT ON GenerateButtonClicked DO:
-        newCount ← READ_INTEGER_FROM_UI("num-inputs")
-        CALL RenderInputs(newCount)
+    // Dynamic Row Generation Event Handler
+    EVENT ON UpdateFieldsButtonClicked DO:
+        newCount <-- READ_INTEGER_FROM_DOM("num-inputs")
+        IF newCount >= 3 THEN
+            ApplicationState.numInputs <-- newCount
+            CALL RenderInputs(newCount)
+        ELSE
+            DISPLAY_ALERT("Minimum of 3 input rows required.")
+        END IF
     END EVENT
 
-    EVENT ON ProcessButtonClicked DO:
+    // Primary Execution Trigger Handlers
+    EVENT ON CalculateExpressionClicked DO:
         CALL ProcessCalculation()
     END EVENT
 
-    EVENT ON PresetButtonClicked(presetKey) DO:
-        CALL LoadPreset(presetKey)
+    EVENT ON ExecuteBcdButtonClicked DO:
+        CALL ProcessBCDOperation()
     END EVENT
 
 END PROGRAM
-```
 
----
 
-## 3. Modular Algorithmic Pseudocode
+// =============================================================================
+// SECTION 2: INPUT VALIDATION ENGINE (IsValidNumber)
+// =============================================================================
+// WHAT IT DOES:
+//   Determines whether an input string is syntactically valid for a given
+//   numeral base (2, 8, 10, or 16). Validates characters, allows an optional
+//   leading negative sign, and allows a single radix point for fractional values.
+// INPUTS:
+//   valueStr (STRING): The raw input entered by the user.
+//   base (INTEGER): The radix (2, 8, 10, or 16).
+// OUTPUT:
+//   BOOLEAN: TRUE if the input contains only valid symbols, FALSE otherwise.
+// =============================================================================
 
-### Module 1: Input Validation (`IsValidNumber`)
-Determines whether an input string contains only valid characters according to the radix / base.
-
-```text
 FUNCTION IsValidNumber(valueStr, base)
-    INPUT: 
-        valueStr (STRING): raw user input
-        base (INTEGER): 2, 8, 10, or 16
-    OUTPUT: 
-        BOOLEAN: TRUE if valid, FALSE otherwise
-
     IF valueStr IS EMPTY OR NULL THEN
         RETURN FALSE
     END IF
 
-    // Strip optional leading negative sign for sign-magnitude validation
-    cleanStr ← valueStr
-    IF cleanStr STARTS WITH "-" THEN
-        cleanStr ← SUBSTRING(cleanStr, 1, LENGTH(cleanStr) - 1)
-    END IF
-
-    IF cleanStr IS EMPTY THEN
+    trimmedStr <-- TRIM_WHITESPACE(valueStr)
+    IF trimmedStr == "" OR trimmedStr == "-" OR trimmedStr == "." OR trimmedStr == "-." THEN
         RETURN FALSE
     END IF
 
-    // Determine allowed symbol alphabet
-    SWITCH base DO
+    // Strip optional leading minus sign for sign-magnitude inspection
+    cleanStr <-- trimmedStr
+    IF cleanStr STARTS WITH "-" THEN
+        cleanStr <-- SUBSTRING(cleanStr, 1, LENGTH(cleanStr) - 1)
+    END IF
+
+    // Define permitted character sets for each radix
+    SWITCH base DO:
         CASE 2:
-            allowedAlphabet ← {'0', '1'}
+            allowedRegex <-- "^[01]+(\.[01]+)?$"
         CASE 8:
-            allowedAlphabet ← {'0'..'7'}
+            allowedRegex <-- "^[0-7]+(\.[0-7]+)?$"
         CASE 10:
-            allowedAlphabet ← {'0'..'9'}
+            allowedRegex <-- "^[0-9]+(\.[0-9]+)?$"
         CASE 16:
-            allowedAlphabet ← {'0'..'9', 'A'..'F', 'a'..'f'}
+            allowedRegex <-- "^[0-9A-Fa-f]+(\.[0-9A-Fa-f]+)?$"
         DEFAULT:
             RETURN FALSE
     END SWITCH
 
-    FOR EACH char IN cleanStr DO
-        IF char NOT IN allowedAlphabet THEN
-            RETURN FALSE
-        END IF
-    END FOR
-
-    RETURN TRUE
+    RETURN MATCH_REGEX(cleanStr, allowedRegex)
 END FUNCTION
-```
 
----
 
-### Module 2: Positional Base-N to Decimal Converter (`ParseToDecimal`)
-Converts any signed integer string from an arbitrary base $B$ into a standard decimal (Base 10) integer using positional expansion:
-$$\text{Value} = \pm \sum_{k=0}^{M-1} d_k \times B^k$$
+// =============================================================================
+// SECTION 3: POSITIONAL BASE NORMALIZATION (ParseToDecimal)
+// =============================================================================
+// WHAT IT DOES:
+//   Converts any valid number from a source radix (2, 8, 10, or 16) into an
+//   IEEE-754 standard decimal (Base 10) floating-point number.
+//   Computes positional place values:
+//     Integer: Sum of (d_i * Base^i)
+//     Fraction: Sum of (d_j * Base^(-j))
+// INPUTS:
+//   valueStr (STRING): Validated numeral string.
+//   base (INTEGER): Radix of the input string.
+// OUTPUT:
+//   FLOAT: The equivalent Base-10 numerical value.
+// =============================================================================
 
-```text
 FUNCTION ParseToDecimal(valueStr, base)
-    INPUT: 
-        valueStr (STRING): representation in base
-        base (INTEGER): radix of the number
-    OUTPUT: 
-        decimalValue (INTEGER): base-10 equivalent
-
-    isNegative ← FALSE
-    cleanStr ← valueStr
-
-    IF cleanStr STARTS WITH "-" THEN
-        isNegative ← TRUE
-        cleanStr ← SUBSTRING(cleanStr, 1, LENGTH(cleanStr) - 1)
+    trimmedStr <-- TRIM_WHITESPACE(valueStr)
+    isNegative <-- FALSE
+    IF trimmedStr STARTS WITH "-" THEN
+        isNegative <-- TRUE
+        trimmedStr <-- SUBSTRING(trimmedStr, 1, LENGTH(trimmedStr) - 1)
     END IF
 
-    decimalValue ← 0
-    FOR EACH char IN cleanStr DO
-        // Convert char to digit value: '0'-'9' -> 0-9, 'A'-'F'/'a'-'f' -> 10-15
-        digit ← CharacterToValue(char)
-        decimalValue ← (decimalValue * base) + digit
+    // Split integer and optional fractional portions
+    parts <-- SPLIT_STRING(trimmedStr, ".")
+    intPartStr <-- parts[0]
+    fracPartStr <-- (LENGTH(parts) > 1) ? parts[1] : ""
+
+    decimalVal <-- 0.0
+
+    // Evaluate integer portion: powers base^(n-1-i)
+    intLength <-- LENGTH(intPartStr)
+    FOR i FROM 0 TO intLength - 1 DO
+        char <-- TO_UPPERCASE(intPartStr[i])
+        digitVal <-- DIGIT_TO_INTEGER(char)   // '0'-'9' -> 0-9, 'A'-'F' -> 10-15
+        power <-- intLength - 1 - i
+        decimalVal <-- decimalVal + (digitVal * (base ^ power))
+    END FOR
+
+    // Evaluate fractional portion: powers base^(-j)
+    FOR j FROM 0 TO LENGTH(fracPartStr) - 1 DO
+        char <-- TO_UPPERCASE(fracPartStr[j])
+        digitVal <-- DIGIT_TO_INTEGER(char)
+        decimalVal <-- decimalVal + (digitVal * (base ^ (-(j + 1))))
     END FOR
 
     IF isNegative THEN
-        decimalValue ← -decimalValue
+        RETURN -decimalVal
+    ELSE
+        RETURN decimalVal
+    END IF
+END FUNCTION
+
+
+// =============================================================================
+// SECTION 4: MULTI-BASE OUTPUT FORMATTER (FormatBase)
+// =============================================================================
+// WHAT IT DOES:
+//   Converts a Base-10 decimal number into a formatted representation in any
+//   target base (2, 8, 10, 16). Performs repeated integer division/modulo
+//   for whole numbers and repeated radix multiplication for fractions
+//   (capped at 6 significant places with trailing zero truncation).
+// INPUTS:
+//   decimalVal (FLOAT): The numerical value in base 10.
+//   targetBase (INTEGER): The output radix (2, 8, 10, or 16).
+//   maxFracDigits (INTEGER): Maximum fractional precision (default = 6).
+// OUTPUT:
+//   STRING: Formatted representation in the target base.
+// =============================================================================
+
+FUNCTION FormatBase(decimalVal, targetBase, maxFracDigits = 6)
+    IF IS_NAN(decimalVal) THEN
+        RETURN "NaN"
+    END IF
+    IF decimalVal == 0 THEN
+        RETURN "0"
     END IF
 
-    RETURN decimalValue
-END FUNCTION
-```
+    isNegative <-- (decimalVal < 0)
+    absVal <-- ABSOLUTE_VALUE(decimalVal)
 
----
+    intPart <-- FLOOR(absVal)
+    fracPart <-- absVal - intPart
 
-### Module 3: Decimal to Arbitrary Base Formatter (`FormatBase`)
-Converts a real number (integer + fractional component) from Base 10 into an arbitrary target base string with precision truncation.
-
-```text
-FUNCTION FormatBase(num, targetBase, precision = 6)
-    INPUT: 
-        num (REAL): decimal number
-        targetBase (INTEGER): destination radix (2, 8, 10, 16)
-        precision (INTEGER): maximum fractional digits
-    OUTPUT: 
-        formattedStr (STRING): representation in targetBase
-
-    IF num IS NaN THEN RETURN "NaN"
-    IF num IS +INFINITY THEN RETURN "Infinity"
-    IF num IS -INFINITY THEN RETURN "-Infinity"
-
-    isNegative ← (num < 0)
-    absNum ← ABS(num)
-    intPart ← FLOOR(absNum)
-    fracPart ← absNum - intPart
-
-    // ----------------------------------------------------
-    // Step 1: Integer Conversion via Successive Division
-    // ----------------------------------------------------
-    intStr ← ""
+    // 1. Convert integer part using successive modulo
     IF intPart == 0 THEN
-        intStr ← "0"
+        intStr <-- "0"
     ELSE
-        temp ← intPart
-        WHILE temp > 0 DO
-            remainder ← temp MOD targetBase
-            digitChar ← ValueToCharacter(remainder) // e.g. 10 -> 'A'
-            intStr ← CONCAT(digitChar, intStr)     // prepend digit
-            temp ← FLOOR(temp / targetBase)
+        intStr <-- ""
+        currentInt <-- intPart
+        WHILE currentInt > 0 DO
+            rem <-- currentInt MOD targetBase
+            intStr <-- INTEGER_TO_HEX_CHAR(rem) + intStr
+            currentInt <-- FLOOR(currentInt / targetBase)
         END WHILE
     END IF
 
-    // Return early if no fractional part exists or precision is zero
-    IF fracPart == 0 OR precision <= 0 THEN
-        RETURN (isNegative ? "-" : "") + intStr
-    END IF
+    // 2. Convert fractional part using successive multiplication
+    fracStr <-- ""
+    currentFrac <-- fracPart
+    digitCount <-- 0
 
-    // ----------------------------------------------------
-    // Step 2: Fractional Conversion via Successive Multiplication
-    // ----------------------------------------------------
-    fracStr ← ""
-    count ← 0
-    WHILE fracPart > 0 AND count < precision DO
-        fracPart ← fracPart * targetBase
-        digit ← FLOOR(fracPart)
-        fracStr ← CONCAT(fracStr, ValueToCharacter(digit))
-        fracPart ← fracPart - digit
-        count ← count + 1
+    WHILE currentFrac > 0 AND digitCount < maxFracDigits DO
+        currentFrac <-- currentFrac * targetBase
+        digit <-- FLOOR(currentFrac)
+        fracStr <-- fracStr + INTEGER_TO_HEX_CHAR(digit)
+        currentFrac <-- currentFrac - digit
+        digitCount <-- digitCount + 1
     END WHILE
 
-    RETURN (isNegative ? "-" : "") + intStr + "." + fracStr
+    // Remove trailing zeros in fractional part
+    WHILE fracStr ENDS WITH "0" DO
+        fracStr <-- SUBSTRING(fracStr, 0, LENGTH(fracStr) - 1)
+    END WHILE
+
+    result <-- (fracStr != "") ? (intStr + "." + fracStr) : intStr
+    IF isNegative THEN
+        result <-- "−" + result
+    END IF
+
+    RETURN result
 END FUNCTION
-```
 
----
 
-### Module 4: Central Processing Pipeline (`ProcessCalculation`)
-The primary driver coordinating input validation, per-input conversion, sequential chained evaluation, division-by-zero handling, and output rendering.
+// =============================================================================
+// SECTION 5: INDIVIDUAL 4-BASE MATRIX DISPATCHER (ConvertToAllBases)
+// =============================================================================
+// WHAT IT DOES:
+//   Takes a raw value from an input row along with its current base,
+//   validates it, converts it to decimal, and generates the simultaneous
+//   conversion matrix displaying its value in BIN, OCT, DEC, and HEX.
+// INPUTS:
+//   valueStr (STRING): Value entered in the row.
+//   currentBase (INTEGER): Selected base of the row.
+// OUTPUT:
+//   OBJECT: Contains validation status, decimal float, and 4-base string representations.
+// =============================================================================
 
-```text
-FUNCTION ProcessCalculation()
-    rows ← DOM_QUERY_ALL(".input-row")
-    count ← LENGTH(rows)
-    allValid ← TRUE
+FUNCTION ConvertToAllBases(valueStr, currentBase)
+    IF NOT IsValidNumber(valueStr, currentBase) THEN
+        RETURN { isValid: FALSE, decimal: NULL, bin: "", oct: "", dec: "", hex: "" }
+    END IF
 
-    decimalValues ← EMPTY LIST
-    originalTokens ← EMPTY LIST
-    decimalTokens ← EMPTY LIST
+    decValue <-- ParseToDecimal(valueStr, currentBase)
 
-    // =======================================================
-    // PHASE 1: Validation & Per-Input Multi-Base Conversion
-    // =======================================================
-    FOR i FROM 1 TO count DO
-        base ← GET_ROW_BASE(i)
-        rawVal ← TRIM(GET_ROW_INPUT_VALUE(i))
+    RETURN {
+        isValid: TRUE,
+        decimal: decValue,
+        bin: FormatBase(decValue, 2),
+        oct: FormatBase(decValue, 8),
+        dec: FormatBase(decValue, 10),
+        hex: FormatBase(decValue, 16)
+    }
+END FUNCTION
 
-        // Check for empty input
-        IF rawVal IS EMPTY THEN
-            SHOW_ROW_ERROR(i, "Input cannot be empty.")
-            CLEAR_ROW_CONVERSION_MATRIX(i)
-            allValid ← FALSE
-            CONTINUE
-        END IF
 
-        // Validate character set against base
-        IF NOT IsValidNumber(rawVal, base) THEN
-            SHOW_ROW_ERROR(i, "Invalid character for Base " + base)
-            CLEAR_ROW_CONVERSION_MATRIX(i)
-            allValid ← FALSE
-            CONTINUE
-        END IF
+// =============================================================================
+// SECTION 6: DYNAMIC INPUT ROW RENDERER (RenderInputs)
+// =============================================================================
+// WHAT IT DOES:
+//   Dynamically constructs N input rows in the DOM. Preserves existing values
+//   and base selections, attaches input event listeners for live conversions,
+//   and synchronizes variable names (A, B, C, D, ...).
+// INPUTS:
+//   count (INTEGER): Number of input rows to render (N >= 3).
+// =============================================================================
 
-        // Clear error indicator
-        CLEAR_ROW_ERROR(i)
+FUNCTION RenderInputs(count)
+    container <-- DOM.GetElementById("inputs-container")
+    existingValues <-- SAVE_CURRENT_INPUT_STATE()
+    container.CLEAR_HTML()
 
-        // Convert to standard decimal
-        decVal ← ParseToDecimal(rawVal, base)
-        APPEND decVal TO decimalValues
+    FOR i FROM 0 TO count - 1 DO
+        varName <-- GET_VARIABLE_LETTER(i)  // 0 -> 'A', 1 -> 'B', etc.
+        savedBase <-- existingValues[i]?.base OR (i == 0 ? 2 : (i == 1 ? 8 : (i == 2 ? 10 : 16)))
+        savedVal  <-- existingValues[i]?.value OR ""
 
-        // Update individual 4-base conversion matrix for this input
-        UPDATE_MATRIX_CELL(i, "BIN", FormatBase(decVal, 2, 0))
-        UPDATE_MATRIX_CELL(i, "OCT", FormatBase(decVal, 8, 0))
-        UPDATE_MATRIX_CELL(i, "DEC", FormatBase(decVal, 10, 0))
-        UPDATE_MATRIX_CELL(i, "HEX", FormatBase(decVal, 16, 0))
+        rowElement <-- CREATE_DOM_ROW(varName, savedBase, savedVal)
+        container.APPEND(rowElement)
 
-        // Save formatted expression tokens
-        subscript ← subscriptMap[base]
-        APPEND CONCAT(TO_UPPER(rawVal), subscript) TO originalTokens
-        APPEND (decVal >= 0 ? STRING(decVal) : CONCAT("(", STRING(decVal), ")")) TO decimalTokens
+        // Attach live keystroke listener for instant 4-base matrix rendering
+        ATTACH_LISTENER(rowElement.inputField, "input", FUNCTION()
+            CALL UpdateSingleRowLivePreview(i)
+        END FUNCTION)
     END FOR
 
-    // Abort calculation if any row failed validation
-    IF NOT allValid OR LENGTH(decimalValues) < count THEN
-        HIDE_ELEMENT("results-section")
+    UPDATE_KEYPAD_ACTIVE_VARIABLES(count)
+END FUNCTION
+
+
+// =============================================================================
+// SECTION 7: INFIX EXPRESSION LEXER & TOKENIZER (TokenizeExpression)
+// =============================================================================
+// WHAT IT DOES:
+//   Scans an arithmetic formula string character by character. Categorizes
+//   characters into tokens: NUMBER, VARIABLE, OPERATOR, LPAREN, RPAREN.
+//   Intelligently injects implicit multiplication operators between adjacent
+//   tokens (e.g., "A(B)" -> "A * (B)", "2A" -> "2 * A", "(A+B)(C+D)" -> "(A+B) * (C+D)").
+// INPUTS:
+//   exprStr (STRING): The formula string entered by the user.
+// OUTPUT:
+//   ARRAY: List of normalized token objects.
+// =============================================================================
+
+FUNCTION TokenizeExpression(exprStr)
+    tokens <-- []
+    pos <-- 0
+    len <-- LENGTH(exprStr)
+
+    WHILE pos < len DO
+        char <-- exprStr[pos]
+
+        IF IS_WHITESPACE(char) THEN
+            pos <-- pos + 1
+            CONTINUE
+        END IF
+
+        // Detect numeric literals
+        IF IS_DIGIT(char) OR char == "." THEN
+            numBuffer <-- ""
+            WHILE pos < len AND (IS_DIGIT(exprStr[pos]) OR exprStr[pos] == ".") DO
+                numBuffer <-- numBuffer + exprStr[pos]
+                pos <-- pos + 1
+            END WHILE
+            tokens.APPEND({ type: "NUMBER", value: numBuffer })
+            CONTINUE
+        END IF
+
+        // Detect symbolic variables (A, B, C, ...)
+        IF IS_ALPHA(char) THEN
+            varBuffer <-- ""
+            WHILE pos < len AND IS_ALPHA(exprStr[pos]) DO
+                varBuffer <-- varBuffer + exprStr[pos]
+                pos <-- pos + 1
+            END WHILE
+            tokens.APPEND({ type: "VARIABLE", value: TO_UPPERCASE(varBuffer) })
+            CONTINUE
+        END IF
+
+        // Detect operators (+, -, *, /, neg)
+        IF char IN ["+", "-", "*", "/", "×", "÷", "−"] THEN
+            normOp <-- MAP_OPERATOR_GLYPH(char)  // '×' -> '*', '÷' -> '/', '−' -> '-'
+            // Detect unary negation: if first token or preceded by an operator / LPAREN
+            prevToken <-- (LENGTH(tokens) > 0) ? tokens[LAST] : NULL
+            IF normOp == "-" AND (prevToken == NULL OR prevToken.type == "OPERATOR" OR prevToken.type == "LPAREN") THEN
+                tokens.APPEND({ type: "OPERATOR", value: "NEG", precedence: 3, associativity: "RIGHT" })
+            ELSE
+                prec <-- (normOp IN ["*", "/"]) ? 2 : 1
+                tokens.APPEND({ type: "OPERATOR", value: normOp, precedence: prec, associativity: "LEFT" })
+            END IF
+            pos <-- pos + 1
+            CONTINUE
+        END IF
+
+        // Detect grouping parentheses
+        IF char == "(" THEN
+            tokens.APPEND({ type: "LPAREN", value: "(" })
+            pos <-- pos + 1
+            CONTINUE
+        ELSE IF char == ")" THEN
+            tokens.APPEND({ type: "RPAREN", value: ")" })
+            pos <-- pos + 1
+            CONTINUE
+        END IF
+
+        pos <-- pos + 1
+    END WHILE
+
+    // Second Pass: Inject implicit multiplication tokens
+    expandedTokens <-- []
+    FOR i FROM 0 TO LENGTH(tokens) - 1 DO
+        curr <-- tokens[i]
+        expandedTokens.APPEND(curr)
+        IF i < LENGTH(tokens) - 1 THEN
+            next <-- tokens[i + 1]
+            needsMul <-- (curr.type IN ["NUMBER", "VARIABLE", "RPAREN"] AND
+                          next.type IN ["VARIABLE", "LPAREN"]) OR
+                         (curr.type == "NUMBER" AND next.type == "VARIABLE")
+            IF needsMul THEN
+                expandedTokens.APPEND({ type: "OPERATOR", value: "*", precedence: 2, associativity: "LEFT" })
+            END IF
+        END IF
+    END FOR
+
+    RETURN expandedTokens
+END FUNCTION
+
+
+// =============================================================================
+// SECTION 8: DIJKSTRA'S SHUNTING-YARD ALGORITHM (ShuntingYard)
+// =============================================================================
+// WHAT IT DOES:
+//   Parses an array of infix tokens and converts it into a Reverse Polish
+//   Notation (RPN / Postfix) queue using an operator stack. Enforces standard
+//   PEMDAS precedence and associativity rules.
+// INPUTS:
+//   tokens (ARRAY): Ordered array of token objects.
+// OUTPUT:
+//   QUEUE: Tokens ordered in Reverse Polish Notation.
+// =============================================================================
+
+FUNCTION ShuntingYard(tokens)
+    outputQueue <-- NEW_QUEUE()
+    operatorStack <-- NEW_STACK()
+
+    FOR EACH token IN tokens DO
+        SWITCH token.type DO
+            CASE "NUMBER":
+            CASE "VARIABLE":
+                outputQueue.ENQUEUE(token)
+
+            CASE "OPERATOR":
+                WHILE NOT operatorStack.IS_EMPTY() AND operatorStack.PEEK().type == "OPERATOR" DO
+                    topOp <-- operatorStack.PEEK()
+                    shouldPop <-- (token.associativity == "LEFT" AND token.precedence <= topOp.precedence) OR
+                                 (token.associativity == "RIGHT" AND token.precedence < topOp.precedence)
+                    IF shouldPop THEN
+                        outputQueue.ENQUEUE(operatorStack.POP())
+                    ELSE
+                        BREAK
+                    END IF
+                END WHILE
+                operatorStack.PUSH(token)
+
+            CASE "LPAREN":
+                operatorStack.PUSH(token)
+
+            CASE "RPAREN":
+                hasMatchingParen <-- FALSE
+                WHILE NOT operatorStack.IS_EMPTY() DO
+                    top <-- operatorStack.POP()
+                    IF top.type == "LPAREN" THEN
+                        hasMatchingParen <-- TRUE
+                        BREAK
+                    ELSE
+                        outputQueue.ENQUEUE(top)
+                    END IF
+                END WHILE
+                IF NOT hasMatchingParen THEN
+                    THROW_SYNTAX_ERROR("Mismatched parentheses in expression.")
+                END IF
+        END SWITCH
+    END FOR
+
+    WHILE NOT operatorStack.IS_EMPTY() DO
+        top <-- operatorStack.POP()
+        IF top.type == "LPAREN" OR top.type == "RPAREN" THEN
+            THROW_SYNTAX_ERROR("Unbalanced grouping parentheses.")
+        END IF
+        outputQueue.ENQUEUE(top)
+    END WHILE
+
+    RETURN outputQueue
+END FUNCTION
+
+
+// =============================================================================
+// SECTION 9: ABSTRACT SYNTAX TREE (AST) BUILDER (BuildAST)
+// =============================================================================
+// WHAT IT DOES:
+//   Builds an Abstract Syntax Tree (AST) from a Reverse Polish Notation queue.
+//   Leaves represent operands (numeric values or bound variable names),
+//   and internal nodes represent binary or unary operators.
+// INPUTS:
+//   postfixQueue (QUEUE): Tokens ordered in RPN.
+// OUTPUT:
+//   ASTNode: The root node of the constructed syntax tree.
+// =============================================================================
+
+FUNCTION BuildAST(postfixQueue)
+    nodeStack <-- NEW_STACK()
+
+    WHILE NOT postfixQueue.IS_EMPTY() DO
+        token <-- postfixQueue.DEQUEUE()
+
+        IF token.type IN ["NUMBER", "VARIABLE"] THEN
+            nodeStack.PUSH({
+                type: token.type,
+                value: token.value,
+                left: NULL,
+                right: NULL
+            })
+        ELSE IF token.type == "OPERATOR" THEN
+            IF token.value == "NEG" THEN
+                // Unary negation operator has single right child
+                IF nodeStack.IS_EMPTY() THEN
+                    THROW_SYNTAX_ERROR("Missing operand for negation operator.")
+                END IF
+                operandNode <-- nodeStack.POP()
+                nodeStack.PUSH({
+                    type: "UNARY_OP",
+                    value: "NEG",
+                    right: operandNode,
+                    left: NULL
+                })
+            ELSE
+                // Binary operator requires two operands
+                IF nodeStack.COUNT() < 2 THEN
+                    THROW_SYNTAX_ERROR("Insufficient operands for operator: " + token.value)
+                END IF
+                rightNode <-- nodeStack.POP()
+                leftNode <-- nodeStack.POP()
+                nodeStack.PUSH({
+                    type: "BINARY_OP",
+                    value: token.value,
+                    left: leftNode,
+                    right: rightNode
+                })
+            END IF
+        END IF
+    END WHILE
+
+    IF nodeStack.COUNT() != 1 THEN
+        THROW_SYNTAX_ERROR("Malformed expression syntax.")
+    END IF
+
+    RETURN nodeStack.POP()
+END FUNCTION
+
+
+// =============================================================================
+// SECTION 10: BOTTOM-UP RECURSIVE AST STEP REDUCER (ReduceASTStepByStep)
+// =============================================================================
+// WHAT IT DOES:
+//   Recursively traverses the syntax tree, resolves variable values to their
+//   decimal representations, checks for mathematical violations (division by zero),
+//   and records a step-by-step audit of each intermediate evaluation.
+// INPUTS:
+//   node (ASTNode): Root or sub-root node of the AST.
+//   variableValues (MAP): Mapping of variable names ('A', 'B') to decimal numbers.
+//   stepHistory (ARRAY): Accumulator for intermediate evaluation steps.
+// OUTPUT:
+//   FLOAT: The final evaluated numeric decimal result.
+// =============================================================================
+
+FUNCTION ReduceASTStepByStep(node, variableValues, stepHistory)
+    IF node.type == "NUMBER" THEN
+        RETURN PARSE_FLOAT(node.value)
+    END IF
+
+    IF node.type == "VARIABLE" THEN
+        IF NOT variableValues.CONTAINS_KEY(node.value) THEN
+            THROW_RUNTIME_ERROR("Variable " + node.value + " has not been initialized.")
+        END IF
+        RETURN variableValues[node.value]
+    END IF
+
+    IF node.type == "UNARY_OP" AND node.value == "NEG" THEN
+        innerVal <-- ReduceASTStepByStep(node.right, variableValues, stepHistory)
+        result <-- -innerVal
+        stepHistory.APPEND({
+            operation: "Negation",
+            detail: "−(" + innerVal + ") = " + result,
+            intermediate: result
+        })
+        RETURN result
+    END IF
+
+    IF node.type == "BINARY_OP" THEN
+        leftVal <-- ReduceASTStepByStep(node.left, variableValues, stepHistory)
+        rightVal <-- ReduceASTStepByStep(node.right, variableValues, stepHistory)
+
+        SWITCH node.value DO
+            CASE "+":
+                result <-- leftVal + rightVal
+            CASE "-":
+                result <-- leftVal - rightVal
+            CASE "*":
+                result <-- leftVal * rightVal
+            CASE "/":
+                IF rightVal == 0 THEN
+                    THROW_DIV_ZERO_ERROR("Division by zero encountered: " + leftVal + " ÷ 0")
+                END IF
+                result <-- leftVal / rightVal
+        END SWITCH
+
+        stepHistory.APPEND({
+            operation: node.value,
+            detail: leftVal + " " + node.value + " " + rightVal + " = " + result,
+            intermediate: result
+        })
+
+        RETURN result
+    END IF
+END FUNCTION
+
+
+// =============================================================================
+// SECTION 11: RADIX & DIMINISHED RADIX COMPLEMENT ENGINE (ComputeComplements)
+// =============================================================================
+// WHAT IT DOES:
+//   Computes both the diminished radix complement (r-1)'s and radix complement
+//   (r)'s for an input in any base (2, 8, 10, 16) across an aligned digit width N.
+//   Formula:
+//     (r-1)'s Complement: (r^N - 1) - Value
+//     r's Complement: r^N - Value = (r-1)'s Complement + 1
+// INPUTS:
+//   valueStr (STRING): Input value.
+//   base (INTEGER): Radix (2, 8, 10, 16).
+//   digitWidth (INTEGER): Number of digits N.
+// OUTPUT:
+//   OBJECT: Diminished and radix complement representations and step breakdown.
+// =============================================================================
+
+FUNCTION ComputeComplements(valueStr, base, digitWidth)
+    decVal <-- ParseToDecimal(valueStr, base)
+    paddedStr <-- PAD_LEFT(TO_UPPERCASE(valueStr), digitWidth, "0")
+    N <-- digitWidth
+
+    maxSymbolVal <-- base - 1
+    diminishedCompChars <-- ""
+
+    // Compute (r-1)'s complement digit-by-digit
+    FOR i FROM 0 TO N - 1 DO
+        digit <-- DIGIT_TO_INTEGER(paddedStr[i])
+        compDigit <-- maxSymbolVal - digit
+        diminishedCompChars <-- diminishedCompChars + INTEGER_TO_HEX_CHAR(compDigit)
+    END FOR
+
+    diminishedDec <-- ParseToDecimal(diminishedCompChars, base)
+    radixDec <-- diminishedDec + 1
+    radixCompChars <-- FormatBase(radixDec, base)
+    radixCompChars <-- PAD_LEFT(radixCompChars, N, "0")
+
+    RETURN {
+        inputAligned: paddedStr,
+        base: base,
+        width: N,
+        diminishedName: (base - 1) + "'s Complement",
+        diminishedValue: diminishedCompChars,
+        radixName: base + "'s Complement",
+        radixValue: radixCompChars
+    }
+END FUNCTION
+
+
+// =============================================================================
+// SECTION 12: GENERAL SUBTRACTION VIA COMPLEMENTS (SubtractViaComplements)
+// =============================================================================
+// WHAT IT DOES:
+//   Executes subtraction A - B using both (r-1)'s and r's complement methods
+//   side-by-side. Handles end carry evaluation (End-Around Carry vs. Discard)
+//   and re-complements negative results.
+// INPUTS:
+//   minuendStr (STRING): Operand A.
+//   subtrahendStr (STRING): Operand B.
+//   base (INTEGER): Common base.
+//   digitWidth (INTEGER): Aligned width.
+// OUTPUT:
+//   OBJECT: Detailed side-by-side execution trace for both complement methods.
+// =============================================================================
+
+FUNCTION SubtractViaComplements(minuendStr, subtrahendStr, base, digitWidth)
+    N <-- digitWidth
+    alignedA <-- PAD_LEFT(minuendStr, N, "0")
+    alignedB <-- PAD_LEFT(subtrahendStr, N, "0")
+
+    decA <-- ParseToDecimal(alignedA, base)
+    decB <-- ParseToDecimal(alignedB, base)
+    trueDiff <-- decA - decB
+    isPositive <-- (trueDiff >= 0)
+
+    // Method 1: (r-1)'s Complement Subtraction
+    compDimB <-- ComputeComplements(alignedB, base, N).diminishedValue
+    sumDim <-- ParseToDecimal(alignedA, base) + ParseToDecimal(compDimB, base)
+    endCarryDim <-- FLOOR(sumDim / (base ^ N))
+    rawSumDimStr <-- FormatBase(sumDim, base)
+
+    IF endCarryDim == 1 THEN
+        // Positive result: Apply End-Around Carry
+        magDimDec <-- (sumDim MOD (base ^ N)) + 1
+        finalDimStr <-- "+" + PAD_LEFT(FormatBase(magDimDec, base), N, "0")
+    ELSE
+        // Negative result: Re-complement
+        recompDec <-- ((base ^ N) - 1) - sumDim
+        finalDimStr <-- "−" + PAD_LEFT(FormatBase(recompDec, base), N, "0")
+    END IF
+
+    // Method 2: r's Complement Subtraction
+    compRadB <-- ComputeComplements(alignedB, base, N).radixValue
+    sumRad <-- ParseToDecimal(alignedA, base) + ParseToDecimal(compRadB, base)
+    endCarryRad <-- FLOOR(sumRad / (base ^ N))
+
+    IF endCarryRad == 1 THEN
+        // Positive result: Discard End Carry
+        magRadDec <-- sumRad MOD (base ^ N)
+        finalRadStr <-- "+" + PAD_LEFT(FormatBase(magRadDec, base), N, "0")
+    ELSE
+        // Negative result: Re-complement
+        recompRadDec <-- (base ^ N) - sumRad
+        finalRadStr <-- "−" + PAD_LEFT(FormatBase(recompRadDec, base), N, "0")
+    END IF
+
+    RETURN {
+        minuend: alignedA,
+        subtrahend: alignedB,
+        methodDiminished: {
+            subtrahendComp: compDimB,
+            sum: rawSumDimStr,
+            endCarry: endCarryDim,
+            finalResult: finalDimStr
+        },
+        methodRadix: {
+            subtrahendComp: compRadB,
+            sum: FormatBase(sumRad, base),
+            endCarry: endCarryRad,
+            finalResult: finalRadStr
+        },
+        decimalVerification: trueDiff
+    }
+END FUNCTION
+
+
+// =============================================================================
+// SECTION 13: BCD 8421 NIBBLE ENCODERS & DECODERS
+// =============================================================================
+// WHAT IT DOES:
+//   Converts single decimal digits (0-9) to 4-bit standard 8421 binary strings
+//   and decodes 4-bit nibbles back into decimal digits.
+// =============================================================================
+
+FUNCTION DecimalDigitToBCD(digit)
+    intVal <-- PARSE_INT(digit)
+    binaryStr <-- ""
+    FOR bitIndex FROM 3 DOWNTO 0 DO
+        bit <-- (intVal BITWISE_SHR bitIndex) BITWISE_AND 1
+        binaryStr <-- binaryStr + STRING(bit)
+    END FOR
+    RETURN binaryStr   // e.g. 5 -> "0101"
+END FUNCTION
+
+FUNCTION BCDNibbleToDecimal(nibbleStr)
+    RETURN PARSE_INT(nibbleStr, 2)
+END FUNCTION
+
+
+// =============================================================================
+// SECTION 14: BCD ADDITION ENGINE WITH HARDWARE-ACCURATE +6 RULE (AddBCD)
+// =============================================================================
+// WHAT IT DOES:
+//   Performs digit-by-digit parallel BCD addition across aligned operands.
+//   Identifies invalid states (rawSum > 9 OR binary carry out >= 16).
+//   Applies the hardware-accurate correction:
+//     correctedDigit = (rawSum + 6) & 0x0F
+//   Propagates carries and prepends an MSB leading digit '1' on end carry.
+// INPUTS:
+//   valAStr (STRING): Operand A decimal string.
+//   valBStr (STRING): Operand B decimal string.
+//   minWidth (INTEGER): Minimum aligned digit width.
+// OUTPUT:
+//   OBJECT: Contains aligned operands, step breakdown, and final BCD bit groups.
+// =============================================================================
+
+FUNCTION AddBCD(valAStr, valBStr, minWidth = 0)
+    rawA <-- TRIM_WHITESPACE(valAStr)
+    rawB <-- TRIM_WHITESPACE(valBStr)
+
+    N <-- MAX(LENGTH(rawA), LENGTH(rawB), minWidth)
+    alignedA <-- PAD_LEFT(rawA, N, "0")
+    alignedB <-- PAD_LEFT(rawB, N, "0")
+
+    cin <-- 0
+    nibbleSteps <-- []
+    sumDigitsOnly <-- ""
+
+    // Iterate LSB (Units) to MSB
+    FOR idx FROM 0 TO N - 1 DO
+        pos <-- N - 1 - idx
+        dA <-- PARSE_INT(alignedA[pos])
+        dB <-- PARSE_INT(alignedB[pos])
+
+        rawSum <-- dA + dB + cin
+        binCarry <-- (rawSum >= 16) ? 1 : 0
+        needsCorrection <-- (rawSum > 9) OR (binCarry == 1)
+
+        IF needsCorrection THEN
+            correctedDigit <-- (rawSum + 6) BITWISE_AND 15  // Modulo 16 hardware logic
+            cout <-- 1
+        ELSE
+            correctedDigit <-- rawSum
+            cout <-- 0
+        END IF
+
+        nibbleSteps.APPEND({
+            digitIndex: idx,
+            placeValue: 10 ^ idx,
+            digitA: dA,
+            bcdA: DecimalDigitToBCD(dA),
+            digitB: dB,
+            bcdB: DecimalDigitToBCD(dB),
+            cin: cin,
+            rawSum: rawSum,
+            needsCorrection: needsCorrection,
+            correctedDigit: correctedDigit,
+            finalBcd: DecimalDigitToBCD(correctedDigit),
+            cout: cout
+        })
+
+        sumDigitsOnly <-- STRING(correctedDigit) + sumDigitsOnly
+        cin <-- cout
+    END FOR
+
+    endCarry <-- cin
+    finalDigits <-- (endCarry == 1) ? ("1" + sumDigitsOnly) : sumDigitsOnly
+
+    resultBCD <-- []
+    FOR EACH char IN finalDigits DO
+        resultBCD.APPEND(DecimalDigitToBCD(char))
+    END FOR
+
+    RETURN {
+        alignedA: alignedA,
+        alignedB: alignedB,
+        alignedLength: N,
+        nibbleSteps: nibbleSteps,
+        endCarry: endCarry,
+        sumDigitsOnly: sumDigitsOnly,
+        finalDigits: finalDigits,
+        resultBCD: resultBCD,
+        decimalValue: PARSE_INT(finalDigits)
+    }
+END FUNCTION
+
+
+// =============================================================================
+// SECTION 15: BCD SUBTRACTION VIA 9'S COMPLEMENT (BCDSubtract9sComplement)
+// =============================================================================
+// WHAT IT DOES:
+//   Executes BCD subtraction A - B using the 9's complement method:
+//     1. Compute 9's complement of subtrahend: Comp9(d_i) = 9 - d_i
+//     2. Perform BCD addition: A + Comp9(B) via AddBCD
+//     3. Check End Carry:
+//        - If 1: Result is positive. Apply End-Around Carry (AddBCD(sum, '1')).
+//        - If 0: Result is negative. Re-complement sum (9 - d_i) and attach minus sign.
+// =============================================================================
+
+FUNCTION BCDSubtract9sComplement(valAStr, valBStr, minWidth = 0)
+    rawA <-- TRIM_WHITESPACE(valAStr)
+    rawB <-- TRIM_WHITESPACE(valBStr)
+
+    N <-- MAX(LENGTH(rawA), LENGTH(rawB), minWidth)
+    alignedA <-- PAD_LEFT(rawA, N, "0")
+    alignedB <-- PAD_LEFT(rawB, N, "0")
+
+    // Step 1: Compute 9's complement of subtrahend
+    comp9Str <-- ""
+    FOR i FROM 0 TO N - 1 DO
+        digit <-- PARSE_INT(alignedB[i])
+        comp9Str <-- comp9Str + STRING(9 - digit)
+    END FOR
+
+    // Step 2: Add Minuend A + 9's Complement of B
+    additionResult <-- AddBCD(alignedA, comp9Str, N)
+    endCarry <-- additionResult.endCarry
+
+    decA <-- PARSE_INT(alignedA)
+    decB <-- PARSE_INT(alignedB)
+    trueDiff <-- decA - decB
+    isPositive <-- (trueDiff >= 0)
+
+    IF endCarry == 1 THEN
+        // Step 3A: End-Around Carry Rule
+        eacResult <-- AddBCD(additionResult.sumDigitsOnly, "1", N)
+        finalDigits <-- eacResult.finalDigits
+        resultSign <-- "+"
+    ELSE
+        // Step 3B: Re-complementation Rule
+        recompDigits <-- ""
+        FOR i FROM 0 TO N - 1 DO
+            d <-- PARSE_INT(additionResult.sumDigitsOnly[i])
+            recompDigits <-- recompDigits + STRING(9 - d)
+        END FOR
+        finalDigits <-- recompDigits
+        resultSign <-- "−"
+    END IF
+
+    finalNibbles <-- []
+    FOR EACH char IN finalDigits DO
+        finalNibbles.APPEND(DecimalDigitToBCD(char))
+    END FOR
+
+    RETURN {
+        alignedA: alignedA,
+        alignedB: alignedB,
+        comp9Str: comp9Str,
+        additionResult: additionResult,
+        endCarry: endCarry,
+        isPositive: isPositive,
+        finalDigits: finalDigits,
+        finalNibbles: finalNibbles,
+        decimalValue: PARSE_INT(resultSign + finalDigits),
+        sign: resultSign
+    }
+END FUNCTION
+
+
+// =============================================================================
+// SECTION 16: BCD SUBTRACTION VIA 10'S COMPLEMENT (BCDSubtract10sComplement)
+// =============================================================================
+// WHAT IT DOES:
+//   Executes BCD subtraction A - B using the 10's complement method:
+//     1. Compute 10's complement of subtrahend: Comp10(B) = Comp9(B) + 1
+//     2. Perform BCD addition: A + Comp10(B) via AddBCD
+//     3. Check End Carry:
+//        - If 1: Result is positive. Discard the end carry.
+//        - If 0: Result is negative. Re-complement sum (10's comp) and attach minus sign.
+// =============================================================================
+
+FUNCTION BCDSubtract10sComplement(valAStr, valBStr, minWidth = 0)
+    rawA <-- TRIM_WHITESPACE(valAStr)
+    rawB <-- TRIM_WHITESPACE(valBStr)
+
+    N <-- MAX(LENGTH(rawA), LENGTH(rawB), minWidth)
+    alignedA <-- PAD_LEFT(rawA, N, "0")
+    alignedB <-- PAD_LEFT(rawB, N, "0")
+
+    // Step 1: Compute 10's complement: 9's complement + 1
+    comp9Str <-- ""
+    FOR i FROM 0 TO N - 1 DO
+        digit <-- PARSE_INT(alignedB[i])
+        comp9Str <-- comp9Str + STRING(9 - digit)
+    END FOR
+    comp10Result <-- AddBCD(comp9Str, "1", N)
+    comp10Str <-- comp10Result.sumDigitsOnly
+
+    // Step 2: Add Minuend A + 10's Complement of B
+    additionResult <-- AddBCD(alignedA, comp10Str, N)
+    endCarry <-- additionResult.endCarry
+
+    decA <-- PARSE_INT(alignedA)
+    decB <-- PARSE_INT(alignedB)
+    trueDiff <-- decA - decB
+    isPositive <-- (trueDiff >= 0)
+
+    IF endCarry == 1 THEN
+        // Step 3A: Discard Carry Rule
+        finalDigits <-- additionResult.sumDigitsOnly
+        resultSign <-- "+"
+    ELSE
+        // Step 3B: Re-complementation Rule
+        recomp9Str <-- ""
+        FOR i FROM 0 TO N - 1 DO
+            d <-- PARSE_INT(additionResult.sumDigitsOnly[i])
+            recomp9Str <-- recomp9Str + STRING(9 - d)
+        END FOR
+        recomp10Result <-- AddBCD(recomp9Str, "1", N)
+        finalDigits <-- recomp10Result.sumDigitsOnly
+        resultSign <-- "−"
+    END IF
+
+    finalNibbles <-- []
+    FOR EACH char IN finalDigits DO
+        finalNibbles.APPEND(DecimalDigitToBCD(char))
+    END FOR
+
+    RETURN {
+        alignedA: alignedA,
+        alignedB: alignedB,
+        comp10Str: comp10Str,
+        additionResult: additionResult,
+        endCarry: endCarry,
+        isPositive: isPositive,
+        finalDigits: finalDigits,
+        finalNibbles: finalNibbles,
+        decimalValue: PARSE_INT(resultSign + finalDigits),
+        sign: resultSign
+    }
+END FUNCTION
+
+
+// =============================================================================
+// SECTION 17: MASTER CALCULATION HANDLERS
+// =============================================================================
+// WHAT IT DOES:
+//   Coordinates UI inputs, validates operands, triggers calculation engines,
+//   and renders the dynamic results areas (reduction trees, hero cards,
+//   columnar addition tables, side-by-side complement cards).
+// =============================================================================
+
+FUNCTION ProcessCalculation()
+    formula <-- READ_STRING_FROM_DOM("expression-input")
+    variableMap <-- NEW_MAP()
+
+    FOR i FROM 0 TO ApplicationState.numInputs - 1 DO
+        valStr <-- READ_STRING_FROM_DOM("input-" + i)
+        base   <-- READ_INTEGER_FROM_DOM("base-" + i)
+        IF NOT IsValidNumber(valStr, base) THEN
+            SHOW_GLOBAL_ERROR("Input Row " + (i + 1) + " contains invalid digits for Base " + base)
+            RETURN
+        END IF
+        variableMap[GET_VARIABLE_LETTER(i)] <-- ParseToDecimal(valStr, base)
+    END FOR
+
+    TRY
+        tokens <-- TokenizeExpression(formula)
+        rpnQueue <-- ShuntingYard(tokens)
+        astRoot <-- BuildAST(rpnQueue)
+        stepHistory <-- []
+        finalResult <-- ReduceASTStepByStep(astRoot, variableMap, stepHistory)
+
+        RENDER_EXPRESSION_CARD(formula, variableMap, stepHistory)
+        RENDER_MULTI_BASE_OUTPUT_TILES(finalResult)
+    CATCH error
+        SHOW_GLOBAL_ERROR(error.message)
+    END TRY
+END FUNCTION
+
+FUNCTION ProcessBCDOperation()
+    valA <-- READ_STRING_FROM_DOM("bcd-val-a")
+    valB <-- READ_STRING_FROM_DOM("bcd-val-b")
+    autoWidth <-- READ_BOOLEAN_FROM_DOM("bcd-auto-digits")
+    userWidth <-- READ_INTEGER_FROM_DOM("bcd-digits")
+
+    IF NOT validateBCDInput(valA) OR NOT validateBCDInput(valB) THEN
+        SHOW_BCD_ERROR("Invalid decimal input. Characters must be 0-9.")
         RETURN
     END IF
 
-    // =======================================================
-    // PHASE 2: Common Base Sequential Evaluation
-    // =======================================================
-    computedResult ← decimalValues[0]
-    isDivByZero ← FALSE
-    divZeroIndex ← NULL
+    width <-- autoWidth ? MAX(LENGTH(valA), LENGTH(valB)) : userWidth
 
-    FOR i FROM 1 TO count - 1 DO
-        nextVal ← decimalValues[i]
-
-        SWITCH currentOperation DO
-            CASE "+":
-                computedResult ← computedResult + nextVal
-            CASE "-":
-                computedResult ← computedResult - nextVal
-            CASE "*":
-                computedResult ← computedResult * nextVal
-            CASE "/":
-                IF nextVal == 0 THEN
-                    isDivByZero ← TRUE
-                    divZeroIndex ← i + 1
-                    BREAK
-                END IF
-                computedResult ← computedResult / nextVal
-        END SWITCH
-
-        IF isDivByZero THEN
-            BREAK
-        END IF
-    END FOR
-
-    // Flag offending division-by-zero field if detected
-    IF isDivByZero AND divZeroIndex ≠ NULL THEN
-        SHOW_ROW_ERROR(divZeroIndex, "Math Error: Division by zero is undefined.")
-    END IF
-
-    // =======================================================
-    // PHASE 3: Mathematical Expression Rendering
-    // =======================================================
-    opSymbol ← opSymbols[currentOperation]
-    expressionStr ← JOIN(originalTokens, " " + opSymbol + " ")
-    SET_TEXT("expression-display", expressionStr)
-
-    IF isDivByZero THEN
-        formulaStr ← JOIN(decimalTokens, " " + opSymbol + " ") + 
-                     " = Undefined (Division by Zero at Input " + STRING(divZeroIndex) + ")"
+    IF ApplicationState.currentBcdMode == "add" THEN
+        addResult <-- AddBCD(valA, valB, width)
+        CALL RenderBCDAdditionResult(addResult, valA, valB)
     ELSE
-        formulaStr ← JOIN(decimalTokens, " " + opSymbol + " ") + " = " + STRING(computedResult)
+        sub9Result  <-- BCDSubtract9sComplement(valA, valB, width)
+        sub10Result <-- BCDSubtract10sComplement(valA, valB, width)
+        CALL RenderBCDSubtractionResult(sub9Result, sub10Result, valA, valB)
     END IF
-    SET_TEXT("decimal-formula", formulaStr)
-
-    // =======================================================
-    // PHASE 4: Final Multi-Base Output Display
-    // =======================================================
-    IF isDivByZero THEN
-        SET_TEXT("final-bin", "Undefined (Div by 0)")
-        SET_TEXT("final-oct", "Undefined (Div by 0)")
-        SET_TEXT("final-dec", "Undefined (Div by 0)")
-        SET_TEXT("final-hex", "Undefined (Div by 0)")
-    ELSE
-        SET_TEXT("final-bin", FormatBase(computedResult, 2, 6))
-        SET_TEXT("final-oct", FormatBase(computedResult, 8, 6))
-        SET_TEXT("final-dec", FormatBase(computedResult, 10, 6))
-        SET_TEXT("final-hex", FormatBase(computedResult, 16, 6))
-    END IF
-
-    SHOW_ELEMENT("results-section")
-    SCROLL_INTO_VIEW("results-section")
 END FUNCTION
 ```
 
 ---
 
-### Module 5: Dynamic Row Management & State Preservation (`RenderInputs`)
-Dynamically regenerates input DOM rows while preserving user inputs and selected bases across count modifications.
-
-```text
-FUNCTION RenderInputs(count)
-    INPUT: count (INTEGER: requested number of input rows)
-
-    IF count IS NULL OR count < 3 THEN
-        count ← 3
-        SET_VALUE("num-inputs", 3)
-    END IF
-
-    // Step 1: Capture existing input data before DOM wipe
-    existingData ← EMPTY LIST
-    currentRows ← DOM_QUERY_ALL(".input-row")
-    
-    FOR i FROM 1 TO LENGTH(currentRows) DO
-        baseVal ← GET_VALUE("base-" + STRING(i))
-        inputVal ← GET_VALUE("val-" + STRING(i))
-        APPEND { base: baseVal, val: inputVal } TO existingData
-    END FOR
-
-    // Step 2: Clear container and dynamically construct rows
-    CLEAR_DOM("inputs-container")
-
-    FOR i FROM 1 TO count DO
-        newRowElement ← CreateInputRow(i)
-        APPEND_CHILD("inputs-container", newRowElement)
-
-        // Step 3: Restore previous state if available
-        IF i <= LENGTH(existingData) THEN
-            SET_VALUE("base-" + STRING(i), existingData[i - 1].base)
-            SET_VALUE("val-" + STRING(i), existingData[i - 1].val)
-            UPDATE_ROW_INDICATOR(i)
-        END IF
-    END FOR
-
-    HIDE_ELEMENT("results-section")
-END FUNCTION
-```
-
----
-
-### Module 6: Quick Test Presets Loader (`LoadPreset`)
-Loads predefined multi-base test cases matching project evaluation requirements.
-
-```text
-FUNCTION LoadPreset(presetKey)
-    INPUT: presetKey (STRING: '1' to '5')
-
-    PRESETS ← {
-        '1': [ { base: '2', val: '1010' }, { base: '8', val: '12' }, { base: '10', val: '5' } ],
-        '2': [ { base: '2', val: '1111' }, { base: '10', val: '20' }, { base: '16', val: 'A' } ],
-        '3': [ { base: '8', val: '30' },   { base: '10', val: '16' }, { base: '16', val: '4' } ],
-        '4': [ { base: '2', val: '1100' }, { base: '8', val: '10' }, { base: '16', val: '2' } ],
-        '5': [ { base: '2', val: '1010' }, { base: '8', val: '12' }, { base: '10', val: '25' }, { base: '16', val: '1F' } ]
-    }
-
-    testData ← PRESETS[presetKey]
-    IF testData IS NULL THEN RETURN
-
-    SET_VALUE("num-inputs", LENGTH(testData))
-    CALL RenderInputs(LENGTH(testData))
-
-    FOR index FROM 0 TO LENGTH(testData) - 1 DO
-        rowNum ← index + 1
-        SET_VALUE("base-" + STRING(rowNum), testData[index].base)
-        SET_VALUE("val-" + STRING(rowNum), testData[index].val)
-        UPDATE_ROW_INDICATOR(rowNum)
-    END FOR
-
-    // Auto-calculate on preset selection
-    CALL ProcessCalculation()
-END FUNCTION
-```
-
----
-
-## 4. Execution Trace Example
-
-### Scenario: Preset 1 with Addition (`+`)
-- **Inputs:**
-  - Input 1: Base 2 (Binary) = `1010`
-  - Input 2: Base 8 (Octal) = `12`
-  - Input 3: Base 10 (Decimal) = `5`
-- **Operation:** `+`
-
-### Step-by-Step Trace:
-
-| Step | Component | Process / Formula | Result / State |
-| :--- | :--- | :--- | :--- |
-| **1** | Input 1 Validation & Parse | `IsValidNumber("1010", 2)` $\rightarrow$ Valid<br>`ParseToDecimal("1010", 2)` $= 1\cdot 2^3 + 0\cdot 2^2 + 1\cdot 2^1 + 0\cdot 2^0$ | Decimal: `10`<br>Matrix: `BIN: 1010, OCT: 12, DEC: 10, HEX: A` |
-| **2** | Input 2 Validation & Parse | `IsValidNumber("12", 8)` $\rightarrow$ Valid<br>`ParseToDecimal("12", 8)` $= 1\cdot 8^1 + 2\cdot 8^0$ | Decimal: `10`<br>Matrix: `BIN: 1010, OCT: 12, DEC: 10, HEX: A` |
-| **3** | Input 3 Validation & Parse | `IsValidNumber("5", 10)` $\rightarrow$ Valid<br>`ParseToDecimal("5", 10)` $= 5\cdot 10^0$ | Decimal: `5`<br>Matrix: `BIN: 101, OCT: 5, DEC: 5, HEX: 5` |
-| **4** | Arithmetic Chain | Accumulator $= 10$<br>$10 + 10 = 20$<br>$20 + 5 = 25$ | Decimal Result $= 25$ |
-| **5** | Expression Formatting | `1010₂ + 12₈ + 5₁₀` | Formula: `10 + 10 + 5 = 25` |
-| **6** | Final Multi-Base Output | `FormatBase(25, 2)` $= 11001_2$<br>`FormatBase(25, 8)` $= 31_8$<br>`FormatBase(25, 10)` $= 25_{10}$<br>`FormatBase(25, 16)` $= 19_{16}$ | **BIN:** `11001`<br>**OCT:** `31`<br>**DEC:** `25`<br>**HEX:** `19` |
-
----
-
-## 5. Complement Computation Algorithms
-
-### 5.1 Complement Names by Number System
-
-For any base $r$ number system with an $n$-digit number $N$:
-
-| System | Base ($r$) | $(r-1)$'s Complement | $r$'s Complement |
-| :--- | :---: | :--- | :--- |
-| Binary | 2 | **1's Complement** | **2's Complement** |
-| Octal | 8 | **7's Complement** | **8's Complement** |
-| Decimal | 10 | **9's Complement** | **10's Complement** |
-| Hexadecimal | 16 | **15's Complement** | **16's Complement** |
-
-### 5.2 Diminished Radix Complement — $(r-1)$'s Complement
-
-```text
-FUNCTION ComputeDiminishedRadixComplement(valueStr, base, numDigits)
-    // Compute the (r-1)'s complement of a number string
-    // For each digit d_i, compute (base - 1) - d_i
-
-    INPUT:
-        valueStr  ← string representation of the number
-        base      ← radix of the number system (2, 8, 10, 16)
-        numDigits ← total digit width for padding
-
-    maxDigitValue ← base - 1
-    paddedValue   ← PAD_LEFT(valueStr, numDigits, '0')
-    complement    ← ""
-    steps         ← []
-
-    FOR i FROM 0 TO LENGTH(paddedValue) - 1 DO
-        currentDigit    ← DIGIT_TO_INT(paddedValue[i])
-        complementDigit ← maxDigitValue - currentDigit
-        complement      ← complement + INT_TO_DIGIT(complementDigit)
-
-        APPEND TO steps: {
-            explanation: maxDigitChar + " − " + paddedValue[i] + " = " + complementDigit
-        }
-    END FOR
-
-    RETURN { complement, steps, paddedValue }
-END FUNCTION
-```
-
-### 5.3 Radix Complement — $r$'s Complement
-
-```text
-FUNCTION ComputeRadixComplement(valueStr, base, numDigits)
-    // Compute the r's complement = (r-1)'s complement + 1
-
-    INPUT:
-        valueStr  ← string representation of the number
-        base      ← radix of the number system
-        numDigits ← total digit width for padding
-
-    // Step 1: Compute diminished radix complement
-    dimResult ← CALL ComputeDiminishedRadixComplement(valueStr, base, numDigits)
-
-    // Step 2: Add 1 to the diminished radix complement
-    addResult ← CALL AddOneInBase(dimResult.complement, base)
-
-    RETURN {
-        complement:           addResult.result,
-        diminishedComplement: dimResult.complement,
-        diminishedSteps:      dimResult.steps,
-        addOneSteps:          addResult.steps
-    }
-END FUNCTION
-```
-
-### 5.4 Addition of One in Base $r$
-
-```text
-FUNCTION AddOneInBase(valueStr, base)
-    // Add 1 to a number string in the given base
-
-    digits ← SPLIT(valueStr, "")
-    carry  ← 1
-
-    FOR i FROM LENGTH(digits) - 1 DOWNTO 0 WHILE carry > 0 DO
-        digitValue ← DIGIT_TO_INT(digits[i])
-        sum        ← digitValue + carry
-        newDigit   ← sum MOD base
-        carry      ← FLOOR(sum / base)
-        digits[i]  ← INT_TO_DIGIT(newDigit)
-    END FOR
-
-    RETURN { result: JOIN(digits), overflow: (carry > 0) }
-END FUNCTION
-```
-
-### 5.5 Digit-by-Digit Addition in Base $r$
-
-```text
-FUNCTION AddInBase(aStr, bStr, base, numDigits)
-    // Add two n-digit numbers in the given base
-
-    a      ← PAD_LEFT(aStr, numDigits, '0')
-    b      ← PAD_LEFT(bStr, numDigits, '0')
-    carry  ← 0
-    result ← ""
-
-    FOR i FROM numDigits - 1 DOWNTO 0 DO
-        aVal  ← DIGIT_TO_INT(a[i])
-        bVal  ← DIGIT_TO_INT(b[i])
-        sum   ← aVal + bVal + carry
-        digit ← sum MOD base
-        carry ← FLOOR(sum / base)
-        result ← INT_TO_DIGIT(digit) + result
-    END FOR
-
-    RETURN { result, carry }
-END FUNCTION
-```
-
----
-
-## 6. Subtraction Using Complement Methods
-
-### 6.1 Subtraction Using $(r-1)$'s Complement (End-Around Carry)
-
-```text
-FUNCTION SubtractUsingDiminishedComplement(minuend, subtrahend, base, numDigits)
-    // Compute A - B using the (r-1)'s complement method
-
-    INPUT:
-        minuend    ← string representation of A
-        subtrahend ← string representation of B
-        base       ← working radix
-        numDigits  ← digit width
-
-    // Step 1: Pad both numbers to n digits
-    paddedA ← PAD_LEFT(minuend, numDigits, '0')
-    paddedB ← PAD_LEFT(subtrahend, numDigits, '0')
-
-    // Step 2: Compute (r-1)'s complement of B
-    compB ← CALL ComputeDiminishedRadixComplement(subtrahend, base, numDigits)
-
-    // Step 3: Add A + complement(B)
-    addResult ← CALL AddInBase(paddedA, compB.complement, base, numDigits)
-
-    // Step 4: Check for carry
-    IF addResult.carry > 0 THEN
-        // End-Around Carry: discard carry and add 1 to result
-        endAroundResult ← CALL AddOneInBase(addResult.result, base)
-        finalResult ← endAroundResult.result
-        isNegative  ← FALSE
-        // Result is POSITIVE
-    ELSE
-        // No carry: take (r-1)'s complement of sum, result is negative
-        reComp ← CALL ComputeDiminishedRadixComplement(addResult.result, base, numDigits)
-        finalResult ← reComp.complement
-        isNegative  ← TRUE
-        // Result is NEGATIVE: prepend "−"
-    END IF
-
-    RETURN { finalResult, isNegative }
-END FUNCTION
-```
-
-### 6.2 Subtraction Using $r$'s Complement (Discard Carry)
-
-```text
-FUNCTION SubtractUsingRadixComplement(minuend, subtrahend, base, numDigits)
-    // Compute A - B using the r's complement method
-
-    INPUT:
-        minuend    ← string representation of A
-        subtrahend ← string representation of B
-        base       ← working radix
-        numDigits  ← digit width
-
-    // Step 1: Pad both numbers to n digits
-    paddedA ← PAD_LEFT(minuend, numDigits, '0')
-    paddedB ← PAD_LEFT(subtrahend, numDigits, '0')
-
-    // Step 2: Compute r's complement of B
-    compB ← CALL ComputeRadixComplement(subtrahend, base, numDigits)
-
-    // Step 3: Add A + complement(B)
-    addResult ← CALL AddInBase(paddedA, compB.complement, base, numDigits)
-
-    // Step 4: Check for carry
-    IF addResult.carry > 0 THEN
-        // Discard carry: result is the sum without carry
-        finalResult ← addResult.result
-        isNegative  ← FALSE
-        // Result is POSITIVE
-    ELSE
-        // No carry: take r's complement of sum, result is negative
-        reComp ← CALL ComputeRadixComplement(addResult.result, base, numDigits)
-        finalResult ← reComp.complement
-        isNegative  ← TRUE
-        // Result is NEGATIVE: prepend "−"
-    END IF
-
-    RETURN { finalResult, isNegative }
-END FUNCTION
-```
-
----
-
-## 7. Complement Execution Trace Examples
-
-### Example 1: Binary 1's and 2's Complement of `1010` (4-bit)
-
-| Step | Operation | Detail | Result |
-| :--- | :--- | :--- | :--- |
-| **1** | Pad to 4 digits | `1010` → `1010` | `1010` |
-| **2** | 1's Complement | `1−1=0`, `1−0=1`, `1−1=0`, `1−0=1` | `0101` |
-| **3** | 2's Complement | `0101 + 1` | `0110` |
-
-### Example 2: Binary Subtraction `1010 − 0111` using 1's Complement
-
-| Step | Operation | Detail | Result |
-| :--- | :--- | :--- | :--- |
-| **1** | Pad A, B | A = `1010`, B = `0111` (4-bit) | — |
-| **2** | 1's comp of B | `1−0=1`, `1−1=0`, `1−1=0`, `1−0=1` → `1000` | `1000` |
-| **3** | Add A + comp(B) | `1010 + 1000 = 10010` | carry = 1, sum = `0010` |
-| **4** | End-Around Carry | Carry exists → `0010 + 1 = 0011` | **+0011₂** (3₁₀) |
-
-### Example 3: Decimal Subtraction `305 − 148` using 9's Complement
-
-| Step | Operation | Detail | Result |
-| :--- | :--- | :--- | :--- |
-| **1** | Pad A, B | A = `305`, B = `148` (3-digit) | — |
-| **2** | 9's comp of B | `9−1=8`, `9−4=5`, `9−8=1` → `851` | `851` |
-| **3** | Add A + comp(B) | `305 + 851 = 1156` | carry = 1, sum = `156` |
-| **4** | End-Around Carry | Carry exists → `156 + 1 = 157` | **+157₁₀** (157₁₀) |
-
----
-
-## 8. BCD (Binary-Coded Decimal) Arithmetic Engine Algorithms
-
-### 8.1 BCD Encoding & Validation
-
-```text
-FUNCTION DecimalDigitToBCD(digit)
-    // Encodes a single decimal digit (0-9) into standard 4-bit 8421 BCD representation
-    INPUT: digit (integer 0 to 9)
-    OUTPUT: 4-character binary string
-
-    num ← TO_INTEGER(digit)
-    IF num < 0 OR num > 9 THEN
-        RETURN "0000"
-    END IF
-
-    // Extract 4-bit binary representation padded with leading zeros
-    binaryString ← TO_BINARY_STRING(num)
-    RETURN PAD_LEFT(binaryString, 4, '0')
-END FUNCTION
-
-FUNCTION ValidateBCDInput(inputString)
-    // Ensures input string consists strictly of non-empty unsigned decimal digits [0-9]
-    INPUT: inputString (string)
-    OUTPUT: boolean
-
-    trimmed ← TRIM(inputString)
-    IF LENGTH(trimmed) == 0 THEN
-        RETURN FALSE
-    END IF
-
-    FOR EACH character c IN trimmed DO
-        IF c < '0' OR c > '9' THEN
-            RETURN FALSE
-        END IF
-    END FOR
-
-    RETURN TRUE
-END FUNCTION
-```
-
-### 8.2 BCD Addition Algorithm with +6 Rule (`AddBCD`)
-
-```text
-FUNCTION AddBCD(numAStr, numBStr, minWidth)
-    // Performs digit-by-digit BCD (8421) addition with automatic +6 (0110₂) correction
-    INPUT:
-        numAStr  ← decimal string for Operand A (Augend)
-        numBStr  ← decimal string for Operand B (Addend)
-        minWidth ← minimum digit alignment width (default: 0)
-    OUTPUT:
-        Structured object containing final digits, BCD nibbles, carry states, and step breakdowns
-
-    rawA ← TRIM(numAStr)
-    rawB ← TRIM(numBStr)
-    N ← MAX(LENGTH(rawA), LENGTH(rawB), minWidth, 1)
-
-    // Left-pad operands with '0' to align place values
-    alignedA ← PAD_LEFT(rawA, N, '0')
-    alignedB ← PAD_LEFT(rawB, N, '0')
-
-    carry ← 0
-    resultDigits ← EMPTY_ARRAY
-    nibbleSteps ← EMPTY_ARRAY
-
-    // Process each decade position from least significant (right) to most significant (left)
-    FOR i FROM (N - 1) DOWNTO 0 DO
-        digitA ← PARSE_INT(alignedA[i])
-        digitB ← PARSE_INT(alignedB[i])
-        carryIn ← carry
-        power ← (N - 1 - i)
-
-        nibbleA ← DecimalDigitToBCD(digitA)
-        nibbleB ← DecimalDigitToBCD(digitB)
-
-        // Raw 4-bit binary addition with incoming carry
-        rawSum ← digitA + digitB + carryIn
-        rawBits ← PAD_LEFT(TO_BINARY_STRING(rawSum), 4, '0')
-
-        // 8421 BCD Correction Condition:
-        // When raw binary sum exceeds 9 (1001₂), or produces an adder carry (>= 16),
-        // add +6 (0110₂) to skip the 6 invalid 4-bit states (1010₂ through 1111₂)
-        IF rawSum > 9 THEN
-            correctionNeeded ← TRUE
-            correctedSum ← rawSum + 6
-            resDigit ← BITWISE_AND(rawSum + 6, 0x0F) // Equivalent to (rawSum + 6) MOD 16
-            carryOut ← 1
-        ELSE
-            correctionNeeded ← FALSE
-            correctedSum ← rawSum
-            resDigit ← rawSum
-            carryOut ← 0
-        END IF
-
-        resNibble ← DecimalDigitToBCD(resDigit)
-        PREPEND(resultDigits, STRING(resDigit))
-
-        RECORD_STEP(nibbleSteps, {
-            positionIndex: i,
-            power: power,
-            digitA: digitA,
-            digitB: digitB,
-            nibbleA: nibbleA,
-            nibbleB: nibbleB,
-            carryIn: carryIn,
-            rawSum: rawSum,
-            rawBits: rawBits,
-            correctionNeeded: correctionNeeded,
-            correctedSum: correctedSum,
-            resDigit: resDigit,
-            resNibble: resNibble,
-            carryOut: carryOut
-        })
-
-        carry ← carryOut
-    END FOR
-
-    endCarry ← carry
-    sumDigitsOnly ← JOIN(resultDigits, "")
-
-    // Prepend '1' if final MSB carry generated an overflow decade
-    IF endCarry == 1 THEN
-        finalDigits ← "1" + sumDigitsOnly
-    ELSE
-        finalDigits ← sumDigitsOnly
-    END IF
-
-    resultBCD ← MAP_TO_BCD(finalDigits)
-    decimalValue ← PARSE_INT(finalDigits)
-
-    RETURN {
-        alignedA, alignedB, alignedLength: N,
-        nibbleSteps, endCarry, sumDigitsOnly,
-        finalDigits, resultBCD, decimalValue
-    }
-END FUNCTION
-```
-
-### 8.3 BCD Subtraction via 9's Complement (`BCDSubtract9sComplement`)
-
-```text
-FUNCTION BCDSubtract9sComplement(numAStr, numBStr, minWidth)
-    // Computes A - B in BCD using the 9's complement (diminished radix) method
-    INPUT:
-        numAStr  ← decimal string for Minuend (A)
-        numBStr  ← decimal string for Subtrahend (B)
-        minWidth ← minimum digit alignment width
-    OUTPUT:
-        Structured object containing complement steps, end carry analysis, and signed result
-
-    rawA ← TRIM(numAStr)
-    rawB ← TRIM(numBStr)
-    N ← MAX(LENGTH(rawA), LENGTH(rawB), minWidth, 1)
-
-    alignedA ← PAD_LEFT(rawA, N, '0')
-    alignedB ← PAD_LEFT(rawB, N, '0')
-
-    // Step 1: Compute 9's complement of Subtrahend B: (10^N - 1) - B
-    comp9Str ← ""
-    FOR i FROM 0 TO (N - 1) DO
-        d ← PARSE_INT(alignedB[i])
-        compD ← 9 - d
-        comp9Str ← comp9Str + STRING(compD)
-    END FOR
-
-    // Step 2: Perform BCD addition: A + Comp9(B)
-    additionResult ← AddBCD(alignedA, comp9Str, N)
-
-    // Step 3: Analyze End Carry Out
-    endCarry ← additionResult.endCarry
-    isZero ← (PARSE_INT(additionResult.sumDigitsOnly) == 0)
-
-    IF endCarry == 1 THEN
-        // Result is POSITIVE (A >= B): Apply End-Around Carry
-        // Add 1 to the least significant digit of the BCD sum
-        endAroundCarryResult ← AddBCD(additionResult.sumDigitsOnly, "1", N)
-        finalDigits ← endAroundCarryResult.sumDigitsOnly
-        sign ← "+"
-        isPositive ← TRUE
-    ELSE
-        // Result is NEGATIVE (A < B): Sum is in 9's complement form
-        // Re-complement the intermediate BCD sum using 9's complement
-        recompDigits ← ""
-        FOR i FROM 0 TO (N - 1) DO
-            d ← PARSE_INT(additionResult.sumDigitsOnly[i])
-            recompDigits ← recompDigits + STRING(9 - d)
-        END FOR
-        finalDigits ← recompDigits
-        IF isZero THEN
-            sign ← "+"
-            isPositive ← TRUE
-        ELSE
-            sign ← "−"
-            isPositive ← FALSE
-        END IF
-    END IF
-
-    finalNibbles ← MAP_TO_BCD(finalDigits)
-    decimalValue ← (isPositive ? 1 : -1) * PARSE_INT(finalDigits)
-
-    RETURN {
-        alignedA, alignedB, alignedLength: N,
-        comp9Str, additionResult, endCarry,
-        isPositive, isZero, finalDigits, finalNibbles,
-        decimalValue, sign
-    }
-END FUNCTION
-```
-
-### 8.4 BCD Subtraction via 10's Complement (`BCDSubtract10sComplement`)
-
-```text
-FUNCTION BCDSubtract10sComplement(numAStr, numBStr, minWidth)
-    // Computes A - B in BCD using the 10's complement (radix complement) method
-    INPUT:
-        numAStr  ← decimal string for Minuend (A)
-        numBStr  ← decimal string for Subtrahend (B)
-        minWidth ← minimum digit alignment width
-    OUTPUT:
-        Structured object containing complement steps, end carry analysis, and signed result
-
-    rawA ← TRIM(numAStr)
-    rawB ← TRIM(numBStr)
-    N ← MAX(LENGTH(rawA), LENGTH(rawB), minWidth, 1)
-
-    alignedA ← PAD_LEFT(rawA, N, '0')
-    alignedB ← PAD_LEFT(rawB, N, '0')
-
-    // Step 1: Compute 10's complement of Subtrahend B: 9's complement + 1
-    comp9Str ← ""
-    FOR i FROM 0 TO (N - 1) DO
-        comp9Str ← comp9Str + STRING(9 - PARSE_INT(alignedB[i]))
-    END FOR
-    comp10Result ← AddBCD(comp9Str, "1", N)
-    comp10Str ← comp10Result.sumDigitsOnly
-
-    // Step 2: Perform BCD addition: A + Comp10(B)
-    additionResult ← AddBCD(alignedA, comp10Str, N)
-
-    // Step 3: Analyze End Carry Out
-    endCarry ← additionResult.endCarry
-    isZero ← (PARSE_INT(additionResult.sumDigitsOnly) == 0)
-
-    IF endCarry == 1 THEN
-        // Result is POSITIVE (A >= B): Discard End Carry
-        // The N-digit intermediate sum is the true positive magnitude
-        finalDigits ← additionResult.sumDigitsOnly
-        sign ← "+"
-        isPositive ← TRUE
-    ELSE
-        // Result is NEGATIVE (A < B): Sum is in 10's complement form
-        // Re-complement the intermediate BCD sum using 10's complement: 9's comp + 1
-        interComp9 ← ""
-        FOR i FROM 0 TO (N - 1) DO
-            interComp9 ← interComp9 + STRING(9 - PARSE_INT(additionResult.sumDigitsOnly[i]))
-        END FOR
-        recompAdd1 ← AddBCD(interComp9, "1", N)
-        finalDigits ← recompAdd1.sumDigitsOnly
-
-        IF isZero THEN
-            sign ← "+"
-            isPositive ← TRUE
-        ELSE
-            sign ← "−"
-            isPositive ← FALSE
-        END IF
-    END IF
-
-    finalNibbles ← MAP_TO_BCD(finalDigits)
-    decimalValue ← (isPositive ? 1 : -1) * PARSE_INT(finalDigits)
-
-    RETURN {
-        alignedA, alignedB, alignedLength: N,
-        comp9Str, comp10Str, additionResult, endCarry,
-        isPositive, isZero, finalDigits, finalNibbles,
-        decimalValue, sign
-    }
-END FUNCTION
-```
-
----
-
-## 9. BCD Arithmetic Execution Trace Examples
-
-### Example 1: BCD Addition with +6 Correction `687 + 549 = 1236`
-
-Operands: $A = 687$, $B = 549$, Aligned Width $N = 3$.
-
-| Position | $A_i$ | $B_i$ | $C_{in}$ | Raw Binary Sum | $> 9$ or Carry? | +6 Correction | Result Nibble | $C_{out}$ |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Units ($10^0$)** | `0111` (7) | `1001` (9) | 0 | `10000` (16) | Yes ($\ge 16$) | `10000 + 0110 = 10110` | `0010` (2) | **1** |
-| **Tens ($10^1$)** | `1000` (8) | `0100` (4) | 1 | `01101` (13) | Yes ($13 > 9$) | `01101 + 0110 = 10011` | `0011` (3) | **1** |
-| **Hundreds ($10^2$)** | `0110` (6) | `0101` (5) | 1 | `01100` (12) | Yes ($12 > 9$) | `01100 + 0110 = 10010` | `0010` (2) | **1** |
-
-* Final Carry Out from MSB $= 1$ $\rightarrow$ Prepend BCD digit `0001` (1).
-* **Final BCD Output:** `[0001] [0010] [0011] [0010]`
-* **Final Decimal Output:** **`1236₁₀`**
-
----
-
-### Example 2: BCD Addition without Correction `5 + 3 = 8`
-
-Operands: $A = 5$, $B = 3$, Aligned Width $N = 1$.
-
-| Position | $A_i$ | $B_i$ | $C_{in}$ | Raw Binary Sum | $> 9$ or Carry? | +6 Correction | Result Nibble | $C_{out}$ |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Units ($10^0$)** | `0101` (5) | `0011` (3) | 0 | `1000` (8) | No ($8 \le 9$) | None (+0000) | `1000` (8) | **0** |
-
-* Final Carry Out $= 0$.
-* **Final BCD Output:** `[1000]`
-* **Final Decimal Output:** **`8₁₀`**
-
----
-
-### Example 3: BCD Subtraction with 9's Complement ($A > B$) `85 − 32`
-
-Operands: $A = 85$, $B = 32$, Aligned Width $N = 2$.
-
-| Step | Operation | Formula / Calculation | Intermediate Value |
-| :--- | :--- | :--- | :--- |
-| **1** | Compute 9's Complement of $B$ | $(9 - 3) = 6$, $(9 - 2) = 7$ | $B'_{9s} = 67$ (BCD: `0110 0111`) |
-| **2** | BCD Addition: $A + B'_{9s}$ | AddBCD(`85`, `67`):<br/>• Units: $5+7=12 > 9 \rightarrow +6 \rightarrow 2$, carry 1<br/>• Tens: $8+6+1=15 > 9 \rightarrow +6 \rightarrow 5$, carry 1 | Sum = `52`, End Carry = **1** |
-| **3** | End-Around Carry Resolution | End Carry $= 1$ (Positive, $A \ge B$):<br/>Add 1 to intermediate sum via BCD Adder:<br/>`52 + 1 = 53` | **`+53₁₀`** |
-| **4** | Final BCD Output | Map `53` to BCD nibbles | `[0101] [0011]` |
-
----
-
-### Example 4: BCD Subtraction with 9's Complement ($A < B$) `32 − 85`
-
-Operands: $A = 32$, $B = 85$, Aligned Width $N = 2$.
-
-| Step | Operation | Formula / Calculation | Intermediate Value |
-| :--- | :--- | :--- | :--- |
-| **1** | Compute 9's Complement of $B$ | $(9 - 8) = 1$, $(9 - 5) = 4$ | $B'_{9s} = 14$ (BCD: `0001 0100`) |
-| **2** | BCD Addition: $A + B'_{9s}$ | AddBCD(`32`, `14`):<br/>• Units: $2+4=6 \le 9 \rightarrow 6$, carry 0<br/>• Tens: $3+1=4 \le 9 \rightarrow 4$, carry 0 | Sum = `46`, End Carry = **0** |
-| **3** | Re-complementing Resolution | End Carry $= 0$ (Negative, $A < B$):<br/>Sum is in 9's complement. Re-complement:<br/>$(9 - 4) = 5$, $(9 - 6) = 3 \rightarrow 53$ | **`−53₁₀`** |
-| **4** | Final BCD Output | Map `53` to BCD nibbles with negative sign | `− [0101] [0011]` |
-
----
-
-### Example 5: BCD Subtraction with 10's Complement ($A > B$) `85 − 32`
-
-Operands: $A = 85$, $B = 32$, Aligned Width $N = 2$.
-
-| Step | Operation | Formula / Calculation | Intermediate Value |
-| :--- | :--- | :--- | :--- |
-| **1** | Compute 10's Complement of $B$ | 9's complement of $32 = 67$<br/>$67 + 1 = 68$ | $B'_{10s} = 68$ (BCD: `0110 1000`) |
-| **2** | BCD Addition: $A + B'_{10s}$ | AddBCD(`85`, `68`):<br/>• Units: $5+8=13 > 9 \rightarrow +6 \rightarrow 3$, carry 1<br/>• Tens: $8+6+1=15 > 9 \rightarrow +6 \rightarrow 5$, carry 1 | Sum = `53`, End Carry = **1** |
-| **3** | End Carry Resolution | End Carry $= 1$ (Positive, $A \ge B$):<br/>Discard End Carry! Remaining digits = `53` | **`+53₁₀`** |
-| **4** | Final BCD Output | Map `53` to BCD nibbles | `[0101] [0011]` |
-
----
-
-### Example 6: BCD Subtraction with 10's Complement ($A < B$) `32 − 85`
-
-Operands: $A = 32$, $B = 85$, Aligned Width $N = 2$.
-
-| Step | Operation | Formula / Calculation | Intermediate Value |
-| :--- | :--- | :--- | :--- |
-| **1** | Compute 10's Complement of $B$ | 9's complement of $85 = 14$<br/>$14 + 1 = 15$ | $B'_{10s} = 15$ (BCD: `0001 0101`) |
-| **2** | BCD Addition: $A + B'_{10s}$ | AddBCD(`32`, `15`):<br/>• Units: $2+5=7 \le 9 \rightarrow 7$, carry 0<br/>• Tens: $3+1=4 \le 9 \rightarrow 4$, carry 0 | Sum = `47`, End Carry = **0** |
-| **3** | Re-complementing Resolution | End Carry $= 0$ (Negative, $A < B$):<br/>Sum is in 10's complement. Re-complement:<br/>9's comp of $47 = 52$; $52 + 1 = 53$ | **`−53₁₀`** |
-| **4** | Final BCD Output | Map `53` to BCD nibbles with negative sign | `− [0101] [0011]` |
-
----
-
-### Example 7: BCD Subtraction with Equal Operands ($A = B$) `77 − 77`
-
-Operands: $A = 77$, $B = 77$, Aligned Width $N = 2$.
-
-| Method | Complement of $B$ | BCD Addition ($A + \text{Comp}$) | End Carry | Resolution | Final Output |
-| :--- | :--- | :--- | :---: | :--- | :--- |
-| **9's Complement** | 9's Comp = `22` | `77 + 22 = 99` | **0** | No carry $\rightarrow$ 9's comp of `99` = `00` | **`+00₁₀` (`0`)** |
-| **10's Complement** | 10's Comp = `23` | `77 + 23 = 100` | **1** | Carry $= 1$ $\rightarrow$ Discard carry $\rightarrow$ `00` | **`+00₁₀` (`0`)** |
-
+## Verification & Documentation Guide
+
+- **Section 1–6 (Base Converters):** Validates and maps numbers between Binary, Octal, Decimal, and Hexadecimal.
+- **Section 7–10 (Expression Parser):** Implements lexical analysis, Dijkstra's Shunting-yard algorithm, and Abstract Syntax Tree (AST) reduction with division-by-zero guards.
+- **Section 11–12 (Complements & Subtraction):** Derives $(r-1)$'s and $r$'s complements and verifies End-Around Carry vs. Discard Carry.
+- **Section 13–16 (BCD Arithmetic):** Implements standard 8421 Binary-Coded Decimal addition with hardware-accurate `(rawSum + 6) & 0x0F` correction and BCD subtraction using 9's and 10's complement algorithms.
+- **Section 17 (Orchestration):** Coordinates UI inputs, calculations, and visual breakdowns.

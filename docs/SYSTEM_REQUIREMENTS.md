@@ -2,9 +2,20 @@
 ## Number System Converter & Unified Algebraic Arithmetic Engine
 **Course / Subject:** CPE 463 — Computer Engineering  
 **Project Identifier:** `Lyduke56/cpe463-number-system-converter`  
-**Document Version:** 1.2.0  
-**Date:** October 2, 2026  
+**Document Version:** 1.3.0  
+**Date:** October 3, 2026  
 **Status:** Approved / Released  
+
+---
+
+### Document Revision History
+
+| Version | Release Date | Summary of Changes | Author / Reviewer |
+| :---: | :---: | :--- | :--- |
+| **1.0.0** | Sep 2026 | Initial baseline specification: Multi-base conversion, Shunting-yard, and AST reduction. | Engineering Team |
+| **1.1.0** | Sep 2026 | Added Module 5 & 6: $(r-1)$'s and $r$'s complements and subtraction via complements. | Engineering Team |
+| **1.2.0** | Oct 2, 2026 | Added Module 9: 3-Tab architecture, BCD addition (+6 rule), and BCD 9's/10's complement subtraction. | Engineering Team |
+| **1.3.0** | Oct 3, 2026 | Added `FR-707`: Zero-emoji vector UI specification, updated backspace/clear symbols, and verified test matrix. | Engineering Team |
 
 ---
 
@@ -290,7 +301,7 @@ graph TD
 
 - **`FR-701` [Virtual Variable & Operator Keypad]:**
   - The UI **MUST** render dynamic variable buttons corresponding to current inputs ($A, B, C, \dots$).
-  - The UI **MUST** provide tactile buttons for operators (`+`, `−`, `×`, `÷`), grouping (`(`, `)`), and backspace (`⌫`).
+  - The UI **MUST** provide tactile buttons for operators (`+`, `−`, `×`, `÷`), grouping (`(`, `)`), and backspace (`Backspace`).
 - **`FR-702` [Cursor-Aware Insertion]:**
   - Keypad button clicks **MUST** insert tokens at the active cursor position in the expression input bar.
 - **`FR-703` [Arithmetic Test Presets]:**
@@ -304,8 +315,10 @@ graph TD
   - Clickable expression chips **MUST** instantly populate common algebraic formulas into the input bar.
 - **`FR-705` [Collapsible Step Accordion]:**
   - The intermediate step breakdown **MUST** feature an expandable/collapsible accordion with step counter badges.
-- **`FR-706` [Mode Toggling]:**
-  - The Complement & Subtraction section **MUST** offer smooth tab switching between "Complement Display" and "Subtraction via Complements".
+- **`FR-706` [Mode Toggling & 3-Tab Architecture]:**
+  - The system **MUST** provide a 3-tab segmented navigation bar ("Converter & Calculator", "Complements & Subtraction", "BCD Arithmetic") synchronized with URL hashes.
+- **`FR-707` [Clean Vector & Zero-Emoji Aesthetic]:**
+  - The UI **SHALL** use clean vector SVG icons and mathematical typography for all navigation tabs, error notifications, mode switches, and action buttons, completely free of informal or inconsistent emoji characters.
 
 ---
 
@@ -366,7 +379,7 @@ graph TD
   - The UI **MUST** provide a comparative takeaways summary detailing fundamental operational differences between diminished-radix and radix complement handling in BCD.
 - **`FR-907` [BCD Presets, Utility Controls & Columnar Table]:**
   - The system **MUST** provide 5 addition presets (`5+3`, `7+6`, `48+35`, `687+549`, `999+1`) and 5 subtraction presets (`85-32`, `32-85`, `450-186`, `125-379`, `77-77`).
-  - The UI **MUST** support operand swapping (⇄), field clearing (✕), auto/manual digit alignment, one-click clipboard copying, and render a synchronized multi-row columnar arithmetic table.
+  - The UI **MUST** support operand swapping (`Swap`), field clearing (`Clear`), auto/manual digit alignment, one-click clipboard copying, and render a synchronized multi-row columnar arithmetic table.
 
 ---
 
@@ -456,6 +469,8 @@ graph TD
 | **`FR-501`** | Complements for all 4 bases | [`script.js`](../script.js) (`computeComplements`) | Test BIN 1s/2s, OCT 7s/8s, DEC 9s/10s, HEX 15s/16s |
 | **`FR-601`** | Subtraction via complements | [`script.js`](../script.js) (`subtractViaComplements`) | Test end-around carry ($M > S$) & negative cases ($M < S$) |
 | **`FR-703`** | Built-in test presets (1–5) | [`script.js`](../script.js) (`loadPreset`) | Click all 5 presets; verify calculated output against README |
+| **`FR-706`** | 3-Tab segmented navigation bar | [`index.html`](../index.html), [`script.js`](../script.js) (`switchMainTab`) | Manual tab click and URL hash synchronization verification |
+| **`FR-707`** | Clean vector SVG and zero-emoji UI | [`index.html`](../index.html), [`style.css`](../style.css) | Visual inspection of tabs, banners, verdicts, and buttons |
 | **`FR-901`** | 8421 BCD encoding & validation | [`script.js`](../script.js) (`decimalDigitToBCD`, `validateBCDInput`) | Unit test with valid (0-9) and invalid non-decimal inputs |
 | **`FR-902`** | Real-time live BCD nibble previews | [`script.js`](../script.js) (`updateBCDInputPreview`) | Keystroke verification under Operand A & B fields |
 | **`FR-903`** | BCD Addition with +6 correction rule | [`script.js`](../script.js) (`addBCD`) | Unit tests with sums $\le 9$, $> 9$, and cascading carries |

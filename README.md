@@ -1,6 +1,8 @@
 # Number System Converter & Unified Algebraic Arithmetic Engine
 **Course / Subject:** CPE 463 — Activity 1  
-**Project Repository:** `Lyduke56/cpe463-number-system-converter`
+**Project Repository:** `Lyduke56/cpe463-number-system-converter`  
+
+I AM TWEAKING OUUUU 🥀🥀🥀
 
 ---
 
@@ -179,32 +181,41 @@ The application handles transformations between four positional numeral systems:
 
 ## 6. Built-In Test Presets
 
-The application includes 5 preset configurations:
-
+### 6.1 Calculator & Converter Presets
 1. **Preset 1 (BIN + OCT + DEC):**
    - Inputs: $A = 1010_2$ (10), $B = 12_8$ (10), $C = 5_{10}$ (5)
    - Expression: `(A + B) * C`
    - Computed Result: $(10 + 10) \times 5 = 100$
-
 2. **Preset 2 (BIN + DEC + HEX):**
    - Inputs: $A = 1111_2$ (15), $B = 20_{10}$ (20), $C = A_{16}$ (10)
    - Expression: `(A + B) - C`
    - Computed Result: $(15 + 20) - 10 = 25$
-
 3. **Preset 3 (OCT + DEC + HEX):**
    - Inputs: $A = 30_8$ (24), $B = 16_{10}$ (16), $C = 4_{16}$ (4)
    - Expression: `(A - B) / C`
    - Computed Result: $(24 - 16) \div 4 = 2$
-
 4. **Preset 4 (BIN + OCT + HEX):**
    - Inputs: $A = 1100_2$ (12), $B = 10_8$ (8), $C = 2_{16}$ (2)
    - Expression: `(A * B) / C`
    - Computed Result: $(12 \times 8) \div 2 = 48$
-
 5. **Preset 5 (BIN + OCT + DEC + HEX) — Default:**
    - Inputs: $A = 1010_2$ (10), $B = 12_8$ (10), $C = 25_{10}$ (25), $D = 1F_{16}$ (31)
    - Expression: `(A + B - C) * D`
    - Computed Result: $(10 + 10 - 25) \times 31 = -155$
+
+### 6.2 BCD Addition Presets
+1. **`5 + 3` (No Correction):** Single-digit sum $= 8 \le 9 \rightarrow$ Correction skipped $\rightarrow 1000_2$ (`8`).
+2. **`7 + 6` (Sum > 9 Correction):** Raw sum $= 13 > 9 \rightarrow +6$ ($0110_2$) added $\rightarrow 0001\ 0011$ (`13`).
+3. **`48 + 35` (Multi-Digit):** Units ($8+5=13 \rightarrow 3$), Tens ($4+3+1=8$) $\rightarrow 1000\ 0011$ (`83`).
+4. **`687 + 549` (End Carry Expansion):** Generates carry out of MSB $\rightarrow 0001\ 0010\ 0011\ 0110$ (`1236`).
+5. **`999 + 1` (Cascading Carry Ripple):** Carry ripples through all nibbles $\rightarrow 0001\ 0000\ 0000\ 0000$ (`1000`).
+
+### 6.3 BCD Subtraction Presets
+1. **`85 − 32` (Positive, $A > B$):** End Carry $= 1 \rightarrow$ End-around carry (9's) / Discard carry (10's) $\rightarrow +53$ (`0101 0011`).
+2. **`32 − 85` (Negative, $A < B$):** End Carry $= 0 \rightarrow$ Re-complemented result $\rightarrow -53$ (`0101 0011`).
+3. **`450 − 186` (3-Digit Borrow Chain):** End Carry $= 1 \rightarrow +264$ (`0010 0110 0100`).
+4. **`125 − 379` (3-Digit Negative):** End Carry $= 0 \rightarrow -254$ (`0010 0101 0100`).
+5. **`77 − 77` (Zero Boundary):** Identical operands $\rightarrow 00$ (`0000 0000`).
 
 ---
 
@@ -248,4 +259,44 @@ The project is a standalone, client-side web application requiring no external c
    - Click **Execute BCD Subtraction**.
    - Compare the 9's complement column (End-Around Carry for positive results, re-complemented for negative results) against the 10's complement column (Discard Carry for positive results, re-complemented for negative results).
    - Use the **Copy BCD** and **Copy Decimal** buttons to copy outputs to the clipboard.
+
+---
+
+## 8. Manual Test Reference Suite
+
+The following edge-case test suite provides verified reference answers for independent manual validation:
+
+### 8.1 BCD Addition (+6 Rule)
+
+| Case ID | Input A | Input B | Scenario Description | Intermediate Step & +6 Rule | Expected Decimal | Expected 8421 BCD Nibbles |
+| :---: | :---: | :---: | :--- | :--- | :---: | :--- |
+| **ADD-01** | `4` | `5` | Single-digit boundary ($\text{Sum} = 9 \le 9$) | Raw sum $1001_2$ ($9$). No carry, sum $\le 9$. Correction **skipped**. | **`9`** | `1001` |
+| **ADD-02** | `9` | `9` | Maximum 1-digit sum ($\ge 16$ overflow) | Raw sum: $18 \rightarrow$ 4-bit binary wraps to $0010_2$ ($2$) with binary carry $1$. Apply $+6$ ($0110_2$): $2+6=8$ ($1000_2$). Carry propagates to Tens. | **`18`** | `0001 1000` |
+| **ADD-03** | `29` | `17` | 2-digit with single nibble correction | Units: $9+7=16 \ge 16 \rightarrow +6 \rightarrow 6$ ($0110_2$), carry $1$.<br>Tens: $2+1+1=4 \le 9 \rightarrow$ no correction. | **`46`** | `0100 0110` |
+| **ADD-04** | `76` | `85` | 2-digit generating end carry into 3rd digit | Units: $6+5=11 > 9 \rightarrow +6 \rightarrow 1$ ($0001_2$), carry $1$.<br>Tens: $7+8+1=16 \ge 16 \rightarrow +6 \rightarrow 6$ ($0110_2$), carry $1$.<br>Hundreds: End carry $1$. | **`161`** | `0001 0110 0001` |
+| **ADD-05** | `358` | `264` | 3-digit with dual consecutive corrections | Units: $8+4=12 > 9 \rightarrow +6 \rightarrow 2$ ($0010_2$), carry $1$.<br>Tens: $5+6+1=12 > 9 \rightarrow +6 \rightarrow 2$ ($0010_2$), carry $1$.<br>Hundreds: $3+2+1=6 \le 9 \rightarrow$ no correction. | **`622`** | `0110 0010 0010` |
+| **ADD-06** | `909` | `191` | 3-digit cascading carries rippling across zeros | Units: $9+1=10 > 9 \rightarrow +6 \rightarrow 0$, carry $1$.<br>Tens: $0+9+1=10 > 9 \rightarrow +6 \rightarrow 0$, carry $1$.<br>Hundreds: $9+1+1=11 > 9 \rightarrow +6 \rightarrow 1$, carry $1$. | **`1100`** | `0001 0001 0000 0000` |
+| **ADD-07** | `2468` | `1357` | 4-digit mixed carry and non-carry | Units: $8+7=15 > 9 \rightarrow +6 \rightarrow 5$, carry $1$.<br>Tens: $6+5+1=12 > 9 \rightarrow +6 \rightarrow 2$, carry $1$.<br>Hundreds: $4+3+1=8 \le 9 \rightarrow$ no correction.<br>Thousands: $2+1=3 \le 9 \rightarrow$ no correction. | **`3825`** | `0011 1000 0010 0101` |
+| **ADD-08** | `8888` | `9999` | 4-digit heavy corrections across all positions | All 4 positions exceed 15, triggering $+6$ additions on every nibble plus MSB end carry. | **`18887`** | `0001 1000 1000 1000 0111` |
+
+### 8.2 BCD Subtraction (9's & 10's Complements)
+
+#### 1. Positive Differences ($A > B$, End Carry $= 1$)
+
+| Case ID | Minuend ($A$) | Subtrahend ($B$) | 9's Complement Method Reference | 10's Complement Method Reference | Expected Final Answer |
+| :---: | :---: | :---: | :--- | :--- | :---: |
+| **SUB-01** | `9` | `4` | • 9's Comp of $B$: `5`<br>• Intermediate Sum: $9 + 5 = 14$ (End Carry = **1**)<br>• End-Around Carry: $4 + 1 =$ **`5`** | • 10's Comp of $B$: `6`<br>• Intermediate Sum: $9 + 6 = 15$ (End Carry = **1**)<br>• Discard Carry $\rightarrow$ **`5`** | **`+5`** (`0101`) |
+| **SUB-02** | `64` | `28` | • 9's Comp of $B$: `71`<br>• Intermediate Sum: $64 + 71 = 135$ (End Carry = **1**)<br>• End-Around Carry: $35 + 1 =$ **`36`** | • 10's Comp of $B$: `72`<br>• Intermediate Sum: $64 + 72 = 136$ (End Carry = **1**)<br>• Discard Carry $\rightarrow$ **`36`** | **`+36`** (`0011 0110`) |
+| **SUB-03** | `500` | `275` | • 9's Comp of $B$: `724`<br>• Intermediate Sum: $500 + 724 = 1224$ (End Carry = **1**)<br>• End-Around Carry: $224 + 1 =$ **`225`** | • 10's Comp of $B$: `725`<br>• Intermediate Sum: $500 + 725 = 1225$ (End Carry = **1**)<br>• Discard Carry $\rightarrow$ **`225`** | **`+225`** (`0010 0010 0101`) |
+| **SUB-04** | `1000` | `1` | • Aligned $B$: `0001`<br>• 9's Comp of $B$: `9998`<br>• Sum: $1000 + 9998 = 10998$ (Carry = **1**)<br>• End-Around Carry: $0998 + 1 =$ **`0999`** | • 10's Comp of $B$: `9999`<br>• Sum: $1000 + 9999 = 10999$ (Carry = **1**)<br>• Discard Carry $\rightarrow$ **`0999`** | **`+999`** (`0000 1001 1001 1001`) |
+| **SUB-05** | `2468` | `1357` | • 9's Comp of $B$: `8642`<br>• Sum: $2468 + 8642 = 11110$ (Carry = **1**)<br>• End-Around Carry: $1110 + 1 =$ **`1111`** | • 10's Comp of $B$: `8643`<br>• Sum: $2468 + 8643 = 11111$ (Carry = **1**)<br>• Discard Carry $\rightarrow$ **`1111`** | **`+1111`** (`0001 0001 0001 0001`) |
+
+#### 2. Negative Differences ($A < B$, End Carry $= 0$)
+
+| Case ID | Minuend ($A$) | Subtrahend ($B$) | 9's Complement Method Reference | 10's Complement Method Reference | Expected Final Answer |
+| :---: | :---: | :---: | :--- | :--- | :---: |
+| **SUB-06** | `4` | `9` | • 9's Comp of $B$: `0`<br>• Sum: $4 + 0 = 04$ (End Carry = **0**)<br>• Re-complement 9's: $9 - 4 =$ **`5`** $\rightarrow$ Attach minus | • 10's Comp of $B$: `1`<br>• Sum: $4 + 1 = 05$ (End Carry = **0**)<br>• Re-complement 10's: $10 - 5 =$ **`5`** $\rightarrow$ Attach minus | **`−5`** (`0101`) |
+| **SUB-07** | `28` | `64` | • 9's Comp of $B$: `35`<br>• Sum: $28 + 35 = 63$ (End Carry = **0**)<br>• Re-complement 9's: $99 - 63 =$ **`36`** $\rightarrow$ Attach minus | • 10's Comp of $B$: `36`<br>• Sum: $28 + 36 = 64$ (End Carry = **0**)<br>• Re-complement 10's: $100 - 64 =$ **`36`** $\rightarrow$ Attach minus | **`−36`** (`0011 0110`) |
+| **SUB-08** | `275` | `500` | • 9's Comp of $B$: `499`<br>• Sum: $275 + 499 = 774$ (End Carry = **0**)<br>• Re-complement 9's: $999 - 774 =$ **`225`** $\rightarrow$ Attach minus | • 10's Comp of $B$: `500`<br>• Sum: $275 + 500 = 775$ (End Carry = **0**)<br>• Re-complement 10's: $1000 - 775 =$ **`225`** $\rightarrow$ Attach minus | **`−225`** (`0010 0010 0101`) |
+| **SUB-09** | `1357` | `2468` | • 9's Comp of $B$: `7531`<br>• Sum: $1357 + 7531 = 8888$ (End Carry = **0**)<br>• Re-complement 9's: $9999 - 8888 =$ **`1111`** $\rightarrow$ Attach minus | • 10's Comp of $B$: `7532`<br>• Sum: $1357 + 7532 = 8889$ (End Carry = **0**)<br>• Re-complement 10's: $10000 - 8889 =$ **`1111`** $\rightarrow$ Attach minus | **`−1111`** (`0001 0001 0001 0001`) |
 
